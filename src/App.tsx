@@ -6,10 +6,16 @@ import Sidebar from "./components/Sidebar";
 import Login from "./components/Login";
 import UserMenu from "./components/UserMenu";
 import ConfigManager from "./components/ConfigManager";
-import { StageItem, DraggableItem } from "./types/stage";
+import InputOutputTable from "./components/InputOutputTable";
+import { StageItem, DraggableItem, StageInputOutput } from "./types/stage";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "./context/AuthContext";
+import {
+  getLatestConfiguration,
+  updateLastAccessed,
+  updateConfiguration,
+} from "./services/configService";
 import "./App.css";
 
 // Define a type for our history entry
@@ -27,6 +33,11 @@ function App() {
   const stageContainerRef = useRef<HTMLDivElement | null>(null);
   const [currentConfigName, setCurrentConfigName] = useState<string | null>(
     null
+  );
+  const [currentConfigId, setCurrentConfigId] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [inputOutput, setInputOutput] = useState<StageInputOutput | undefined>(
+    undefined
   );
 
   // Use refs instead of state for the save/load functions to prevent re-renders
@@ -47,7 +58,11 @@ function App() {
 
   // Function to add a new entry to history
   const addToHistory = useCallback(
-    (newItems: StageItem[], newLatestItemId: string | null) => {
+    (
+      newItems: StageItem[],
+      newLatestItemId: string | null,
+      isInitialLoad: boolean = false
+    ) => {
       if (isUndoRedoAction) {
         // Don't add to history if this change is from an undo/redo action
         setIsUndoRedoAction(false);
@@ -86,6 +101,11 @@ function App() {
 
       // Update UI states
       setHistoryLength(newHistory.length);
+
+      // Mark as having unsaved changes unless this is the initial load
+      if (!isInitialLoad) {
+        setHasUnsavedChanges(true);
+      }
 
       console.log(
         `History entry added. Total: ${newHistory.length}, Current index: ${
@@ -173,173 +193,23 @@ function App() {
     };
   }, [handleUndo, handleRedo]);
 
-  const handleDrop = useCallback(
-    (item: DraggableItem, position: { x: number; y: number }) => {
-      console.log("handleDrop called with:", item, position);
-
-      const timestamp = Date.now();
-      const newId = `${item.name}-${timestamp}`;
-
-      const newItem: StageItem = {
-        id: newId,
-        name: item.name,
-        category: item.type,
-        icon: item.icon,
-        position,
-        width: 200,
-        height: 200,
-      };
-
-      console.log(
-        "Creating new item with dimensions:",
-        newItem.width,
-        "x",
-        newItem.height
-      );
-
-      setItems((currentItems) => {
-        const newItems = [...currentItems, newItem];
-        console.log("Adding new item to state:", newItem);
-
-        // Add this action to history
-        addToHistory(newItems, newId);
-
-        return newItems;
-      });
-
-      console.log("Setting latest item ID for selection:", newId);
-      setLatestItemId(newId);
+  // Function to handle input/output changes
+  const handleInputOutputChange = useCallback(
+    (newInputOutput: StageInputOutput) => {
+      setInputOutput(newInputOutput);
+      setHasUnsavedChanges(true);
     },
-    [addToHistory]
+    []
   );
-
-  // Handle click on sidebar item
-  const handleSidebarItemClick = useCallback(
-    (item: DraggableItem) => {
-      console.log("Sidebar item clicked:", item);
-
-      // Calculate the center position of the stage
-      const stageWidth = 1200; // Should match the width prop of Stage
-      const stageHeight = 800; // Should match the height prop of Stage
-
-      // Place the item at the center of the stage
-      const position = {
-        x: Math.max(0, stageWidth / 2 - 100), // Center X, assuming item width of 200
-        y: Math.max(0, stageHeight / 2 - 100), // Center Y, assuming item height of 200
-      };
-
-      // Use the existing handleDrop function to add the item
-      handleDrop(item, position);
-    },
-    [handleDrop]
-  );
-
-  const handleMove = useCallback(
-    (id: string, position: { x: number; y: number }) => {
-      console.log("handleMove called for id:", id, "position:", position);
-
-      setItems((currentItems) => {
-        const newItems = currentItems.map((item) => {
-          if (item.id === id) {
-            console.log("Moving item:", item.id);
-            return { ...item, position };
-          }
-          return item;
-        });
-
-        // Add to history
-        addToHistory(newItems, latestItemId);
-
-        return newItems;
-      });
-    },
-    [addToHistory, latestItemId]
-  );
-
-  const handleDelete = useCallback(
-    (id: string) => {
-      console.log("Deleting item:", id);
-
-      setItems((currentItems) => {
-        const newItems = currentItems.filter((item) => item.id !== id);
-
-        // Update history
-        const newLatestItemId = latestItemId === id ? null : latestItemId;
-        addToHistory(newItems, newLatestItemId);
-
-        return newItems;
-      });
-
-      setLatestItemId((currentId) => (currentId === id ? null : currentId));
-    },
-    [addToHistory, latestItemId]
-  );
-
-  const handleResize = useCallback(
-    (id: string, size: { width: number; height: number }) => {
-      console.log("Resizing item:", id, "to", size);
-
-      setItems((currentItems) => {
-        const newItems = currentItems.map((item) => {
-          if (item.id === id) {
-            return { ...item, width: size.width, height: size.height };
-          }
-          return item;
-        });
-
-        // Add to history
-        addToHistory(newItems, latestItemId);
-
-        return newItems;
-      });
-    },
-    [addToHistory, latestItemId]
-  );
-
-  const handleDuplicate = useCallback(
-    (id: string, position: { x: number; y: number }) => {
-      console.log("Duplicating item:", id, "at position:", position);
-
-      setItems((currentItems) => {
-        // Find the item to duplicate
-        const originalItem = currentItems.find((item) => item.id === id);
-        if (!originalItem) return currentItems;
-
-        // Create a new ID with timestamp
-        const timestamp = Date.now();
-        const newId = `${originalItem.name}-${timestamp}`;
-
-        // Create a duplicate with new ID and position
-        const duplicatedItem: StageItem = {
-          ...originalItem,
-          id: newId,
-          position,
-        };
-
-        console.log("Created duplicate item:", duplicatedItem);
-
-        // Add the new item to the state
-        const newItems = [...currentItems, duplicatedItem];
-
-        // Add to history (with the new item as latest)
-        addToHistory(newItems, newId);
-
-        // Set it as latest
-        setLatestItemId(newId);
-
-        return newItems;
-      });
-    },
-    [addToHistory]
-  );
-
-  const handleItemSelected = useCallback(() => {
-    setLatestItemId(null);
-  }, []);
 
   // Handler for importing stage configuration
   const handleImport = useCallback(
-    (importedItems: StageItem[], configName: string) => {
+    (
+      importedItems: StageItem[],
+      configName: string,
+      configId?: string,
+      importedInputOutput?: StageInputOutput
+    ) => {
       console.log(
         "Importing stage configuration with",
         importedItems.length,
@@ -347,16 +217,84 @@ function App() {
       );
       // Replace current items with imported ones
       setItems(importedItems);
-      // Clear latest item ID to avoid selection issues
-      setLatestItemId(null);
-      // Set the current configuration name
+      setLatestItemId(null); // Reset latest ID since we're loading a new config
       setCurrentConfigName(configName);
+      setCurrentConfigId(configId || null);
+      setHasUnsavedChanges(false);
 
-      // Add imported state to history
-      addToHistory(importedItems, null);
+      // Set input/output data if it exists
+      setInputOutput(importedInputOutput);
+
+      // Add the imported state to history as the initial load
+      addToHistory(importedItems, null, true);
+
+      // Update last accessed timestamp if we have a config ID
+      if (configId) {
+        updateLastAccessed(configId);
+      }
     },
     [addToHistory]
   );
+
+  // Load the most recent configuration when the app starts
+  useEffect(() => {
+    const loadLatestConfig = async () => {
+      // Only attempt to load if user is authenticated
+      if (currentUser) {
+        try {
+          console.log("Attempting to load most recent configuration...");
+          const latestConfig = await getLatestConfiguration(currentUser.uid);
+
+          if (latestConfig) {
+            console.log(
+              `Found latest configuration: ${latestConfig.name} with ${latestConfig.items.length} items`
+            );
+            // Use the existing handleImport function to load the configuration
+            handleImport(
+              latestConfig.items,
+              latestConfig.name,
+              latestConfig.id,
+              latestConfig.inputOutput
+            );
+          } else {
+            console.log("No saved configurations found");
+          }
+        } catch (error) {
+          console.error("Error loading latest configuration:", error);
+          // Don't show an error to the user - if this fails, they'll just start with an empty stage
+        }
+      }
+    };
+
+    loadLatestConfig();
+  }, [currentUser, handleImport]); // Re-run if the user changes or handleImport changes
+
+  // Handler for saving current configuration
+  const handleSave = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      if (!currentConfigId || !currentConfigName) {
+        console.error("Missing configuration ID or name");
+        return;
+      }
+
+      console.log(`Saving configuration '${currentConfigName}'...`);
+      await updateConfiguration(currentConfigId, items, inputOutput);
+      setHasUnsavedChanges(false);
+      alert(`Configuration '${currentConfigName}' updated successfully!`);
+    } catch (error) {
+      console.error("Error saving configuration:", error);
+      alert("Failed to save configuration. Please try again.");
+    }
+  }, [currentUser, currentConfigId, currentConfigName, items, inputOutput]);
+
+  // Handler for "Save As" to create a new configuration
+  const handleSaveAs = useCallback(() => {
+    // We're using the existing modal in ConfigManager for "Save As"
+    // This just opens the modal - actual saving is handled in the ConfigManager component
+    console.log("Opening Save As modal");
+  }, []);
 
   // Function to export stage to PDF
   const handleExportPDF = useCallback(() => {
@@ -485,6 +423,191 @@ function App() {
       });
   }, [items]);
 
+  const handleDrop = useCallback(
+    (item: DraggableItem, position: { x: number; y: number }) => {
+      console.log("handleDrop called with:", item, position);
+
+      const timestamp = Date.now();
+      const newId = `${item.name}-${timestamp}`;
+
+      // Use default width/height from item if available, otherwise use 100 as fallback
+      const itemWidth = item.defaultWidth || 100;
+      const itemHeight = item.defaultHeight || 100;
+
+      const newItem: StageItem = {
+        id: newId,
+        name: item.name,
+        category: item.type,
+        icon: item.icon,
+        position,
+        width: itemWidth,
+        height: itemHeight,
+      };
+
+      console.log(
+        "Creating new item with dimensions:",
+        newItem.width,
+        "x",
+        newItem.height
+      );
+
+      setItems((currentItems) => {
+        const newItems = [...currentItems, newItem];
+        console.log("Adding new item to state:", newItem);
+
+        // Add this action to history
+        addToHistory(newItems, newId);
+
+        return newItems;
+      });
+
+      console.log("Setting latest item ID for selection:", newId);
+      setLatestItemId(newId);
+    },
+    [addToHistory]
+  );
+
+  // Handle click on sidebar item
+  const handleSidebarItemClick = useCallback(
+    (item: DraggableItem) => {
+      console.log("Sidebar item clicked:", item);
+
+      // Calculate the center position of the stage
+      const stageWidth = 1200; // Should match the width prop of Stage
+      const stageHeight = 800; // Should match the height prop of Stage
+
+      // Get item dimensions with fallbacks
+      const itemWidth = item.defaultWidth || 100;
+      const itemHeight = item.defaultHeight || 100;
+
+      // Place the item at the center of the stage
+      const position = {
+        x: Math.max(0, stageWidth / 2 - itemWidth / 2), // Center X based on item width
+        y: Math.max(0, stageHeight / 2 - itemHeight / 2), // Center Y based on item height
+      };
+
+      // Use the existing handleDrop function to add the item
+      handleDrop(item, position);
+    },
+    [handleDrop]
+  );
+
+  const handleMove = useCallback(
+    (id: string, position: { x: number; y: number }) => {
+      console.log("handleMove called for id:", id, "position:", position);
+
+      setItems((currentItems) => {
+        const newItems = currentItems.map((item) => {
+          if (item.id === id) {
+            console.log("Moving item:", item.id);
+            return { ...item, position };
+          }
+          return item;
+        });
+
+        // Add to history
+        addToHistory(newItems, latestItemId);
+
+        return newItems;
+      });
+    },
+    [addToHistory, latestItemId]
+  );
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      console.log("Deleting item:", id);
+
+      setItems((currentItems) => {
+        const newItems = currentItems.filter((item) => item.id !== id);
+
+        // Update history
+        const newLatestItemId = latestItemId === id ? null : latestItemId;
+        addToHistory(newItems, newLatestItemId);
+
+        return newItems;
+      });
+
+      setLatestItemId((currentId) => (currentId === id ? null : currentId));
+    },
+    [addToHistory, latestItemId]
+  );
+
+  const handleResize = useCallback(
+    (
+      id: string,
+      size: { width: number; height: number; isFlipped?: boolean }
+    ) => {
+      console.log("Resizing item:", id, "to", size);
+
+      setItems((currentItems) => {
+        const newItems = currentItems.map((item) => {
+          if (item.id === id) {
+            // Check if isFlipped is defined in the size parameter
+            if (typeof size.isFlipped !== "undefined") {
+              return {
+                ...item,
+                width: size.width,
+                height: size.height,
+                isFlipped: size.isFlipped,
+              };
+            }
+            // Otherwise just update width and height
+            return { ...item, width: size.width, height: size.height };
+          }
+          return item;
+        });
+
+        // Add to history
+        addToHistory(newItems, latestItemId);
+
+        return newItems;
+      });
+    },
+    [addToHistory, latestItemId]
+  );
+
+  const handleDuplicate = useCallback(
+    (id: string, position: { x: number; y: number }) => {
+      console.log("Duplicating item:", id, "at position:", position);
+
+      setItems((currentItems) => {
+        // Find the item to duplicate
+        const originalItem = currentItems.find((item) => item.id === id);
+        if (!originalItem) return currentItems;
+
+        // Create a new ID with timestamp
+        const timestamp = Date.now();
+        const newId = `${originalItem.name}-${timestamp}`;
+
+        // Create a duplicate with new ID and position
+        const duplicatedItem: StageItem = {
+          ...originalItem,
+          id: newId,
+          position,
+        };
+
+        console.log("Created duplicate item:", duplicatedItem);
+
+        // Add the new item to the state
+        const newItems = [...currentItems, duplicatedItem];
+
+        // Add to history (with the new item as latest)
+        addToHistory(newItems, newId);
+
+        // Set it as latest
+        setLatestItemId(newId);
+
+        return newItems;
+      });
+    },
+    [addToHistory]
+  );
+
+  const handleItemSelected = useCallback(() => {
+    setLatestItemId(null);
+  }, []);
+
   // Show loading state
   if (loading) {
     return (
@@ -526,7 +649,10 @@ function App() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div style={{ display: "flex", height: "100vh" }}>
+      <div
+        className="main-container"
+        style={{ display: "flex", height: "100vh" }}
+      >
         <Sidebar onItemClick={handleSidebarItemClick} />
         <UserMenu />
         <div
@@ -555,8 +681,13 @@ function App() {
           >
             <ConfigManager
               items={items}
+              inputOutput={inputOutput}
               onLoad={handleImport}
               currentConfigName={currentConfigName}
+              currentConfigId={currentConfigId}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onSave={handleSave}
+              onSaveAs={handleSaveAs}
             />
             <button
               onClick={handleExportPDF}
@@ -644,7 +775,7 @@ function App() {
                 filter: "drop-shadow(0 0 5px rgba(255,255,255,0.3))",
               }}
             >
-              {currentConfigName}
+              {hasUnsavedChanges ? `${currentConfigName} *` : currentConfigName}
             </div>
           )}
 
@@ -654,34 +785,72 @@ function App() {
             style={{
               flex: 1,
               display: "flex",
-              justifyContent: "center",
+              flexDirection: "column",
+              justifyContent: "flex-start",
               alignItems: "center",
+              width: "100%",
+              marginTop: "20px",
             }}
           >
-            <Stage
-              width={1200}
-              height={800}
-              items={items}
-              onDrop={handleDrop}
-              onMove={handleMove}
-              onDelete={handleDelete}
-              onResize={handleResize}
-              onDuplicate={handleDuplicate}
-              latestItemId={latestItemId}
-              onItemSelected={handleItemSelected}
-              onImport={(importedItems) => {
-                // Default to empty string if no config name available when directly imported
-                handleImport(importedItems, "");
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+                marginBottom: "20px",
               }}
-              onExport={(handler) => {
-                console.log("Setting export handler in App");
-                exportConfigRef.current = handler;
+            >
+              <div
+                style={{
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  boxShadow: "0 0 10px rgba(0, 0, 0, 0.2)",
+                }}
+              >
+                <Stage
+                  width={1200}
+                  height={800}
+                  items={items}
+                  onDrop={handleDrop}
+                  onMove={handleMove}
+                  onDelete={handleDelete}
+                  onResize={handleResize}
+                  onDuplicate={handleDuplicate}
+                  latestItemId={latestItemId}
+                  onItemSelected={handleItemSelected}
+                  onImport={(importedItems) => {
+                    // Default to empty string if no config name available when directly imported
+                    handleImport(importedItems, "");
+                  }}
+                  onExport={(handler) => {
+                    console.log("Setting export handler in App");
+                    exportConfigRef.current = handler;
+                  }}
+                  onImportFunc={(handler) => {
+                    console.log("Setting import handler in App");
+                    importConfigRef.current = handler;
+                  }}
+                />
+              </div>
+            </div>
+
+            <div
+              className="input-output-container"
+              style={{
+                width: "100%",
+                maxWidth: "1200px",
+                backgroundColor: "transparent",
+                borderRadius: "8px",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
               }}
-              onImportFunc={(handler) => {
-                console.log("Setting import handler in App");
-                importConfigRef.current = handler;
-              }}
-            />
+            >
+              <InputOutputTable
+                inputOutput={inputOutput}
+                onChange={handleInputOutputChange}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -6,20 +6,35 @@ import {
   deleteConfiguration,
   SavedConfig,
 } from "../services/configService";
-import { StageItem } from "../types/stage";
+import { StageItem, StageInputOutput } from "../types/stage";
 
 interface ConfigManagerProps {
   items: StageItem[];
-  onLoad: (items: StageItem[], configName: string) => void;
+  inputOutput?: StageInputOutput;
+  onLoad: (
+    items: StageItem[],
+    configName: string,
+    configId?: string,
+    inputOutput?: StageInputOutput
+  ) => void;
   currentConfigName: string | null;
+  currentConfigId?: string | null;
+  hasUnsavedChanges?: boolean;
+  onSave?: () => void;
+  onSaveAs?: () => void;
 }
 
 // Note: currentConfigName is required by the interface but displayed directly in App component
 const ConfigManager: React.FC<ConfigManagerProps> = ({
   items,
+  inputOutput,
   onLoad,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   currentConfigName,
+  currentConfigId,
+  hasUnsavedChanges,
+  onSave,
+  onSaveAs,
 }) => {
   const { currentUser } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,9 +106,19 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
         console.log("Configuration name:", configName);
         console.log("Items count:", items.length);
 
-        await saveConfiguration(currentUser.uid, configName, items);
+        const newConfigId = await saveConfiguration(
+          currentUser.uid,
+          configName,
+          items,
+          inputOutput
+        );
         setConfigName("");
         closeModal();
+
+        // Update current configuration to the one we just saved
+        if (newConfigId) {
+          onLoad(items, configName, newConfigId, inputOutput);
+        }
 
         // Add success message
         alert("Configuration saved successfully!");
@@ -129,7 +154,7 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
       }
 
       console.log("Loading configuration:", config);
-      onLoad(config.items, config.name);
+      onLoad(config.items, config.name, config.id, config.inputOutput);
       closeModal();
     } catch (error) {
       console.error("Error loading configuration:", error);
@@ -167,21 +192,53 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
   // Buttons to open the modal
   const renderButtons = () => (
     <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+      {/* Save button - enabled only when we have unsaved changes and a current config ID */}
       <button
-        onClick={openSaveModal}
+        onClick={onSave}
+        disabled={!hasUnsavedChanges || !currentConfigId}
         style={{
           padding: "6px 12px",
-          backgroundColor: "#3498db",
+          backgroundColor:
+            !hasUnsavedChanges || !currentConfigId ? "#a9d4f1" : "#3498db",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor:
+            !hasUnsavedChanges || !currentConfigId ? "default" : "pointer",
+          fontSize: "14px",
+        }}
+        title={
+          !currentConfigId
+            ? "No configuration loaded to save"
+            : !hasUnsavedChanges
+            ? "No changes to save"
+            : "Save changes to current configuration"
+        }
+      >
+        Save
+      </button>
+
+      {/* Save As button - always enabled */}
+      <button
+        onClick={() => {
+          if (onSaveAs) onSaveAs();
+          openSaveModal();
+        }}
+        style={{
+          padding: "6px 12px",
+          backgroundColor: "#27ae60",
           color: "white",
           border: "none",
           borderRadius: "4px",
           cursor: "pointer",
           fontSize: "14px",
         }}
-        title="Save configuration"
+        title="Save as a new configuration"
       >
-        Save
+        Save As
       </button>
+
+      {/* Load button */}
       <button
         onClick={openLoadModal}
         style={{

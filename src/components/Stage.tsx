@@ -9,7 +9,10 @@ interface StageProps {
   onDrop: (item: DraggableItem, position: { x: number; y: number }) => void;
   onMove: (id: string, position: { x: number; y: number }) => void;
   onDelete: (id: string) => void;
-  onResize?: (id: string, size: { width: number; height: number }) => void;
+  onResize?: (
+    id: string,
+    size: { width: number; height: number; isFlipped?: boolean }
+  ) => void;
   onDuplicate?: (id: string, position: { x: number; y: number }) => void;
   latestItemId?: string | null;
   onItemSelected?: () => void;
@@ -93,7 +96,10 @@ const StageItemComponent: React.FC<{
   onDelete: (id: string) => void;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onResize: (id: string, size: { width: number; height: number }) => void;
+  onResize: (
+    id: string,
+    size: { width: number; height: number; isFlipped?: boolean }
+  ) => void;
   onDuplicate?: (id: string, position: { x: number; y: number }) => void;
   allItems: StageItem[];
   selectedItemIds: string[];
@@ -249,6 +255,9 @@ const StageItemComponent: React.FC<{
     const startWidth = itemSize.width || 100;
     const startHeight = itemSize.height || 100;
 
+    // Calculate aspect ratio to maintain
+    const aspectRatio = startWidth / startHeight;
+
     console.log("Adding document event listeners for resize");
 
     // Use direct functions without useCallback to ensure the latest closure values
@@ -279,34 +288,30 @@ const StageItemComponent: React.FC<{
         heightChange = -deltaY;
       }
 
-      // Determine the largest change to maintain square aspect ratio
-      // We use the absolute value to find the larger change, then apply the correct sign
-      const maxChange = Math.max(Math.abs(widthChange), Math.abs(heightChange));
-      const signWidth = widthChange >= 0 ? 1 : -1;
-      const signHeight = heightChange >= 0 ? 1 : -1;
+      let newWidth, newHeight;
 
-      // Apply the change while keeping aspect ratio 1:1
-      let newSize = Math.max(
-        30,
-        startWidth +
-          (handlePosition.includes("left") || handlePosition.includes("right")
-            ? signWidth * maxChange
-            : 0)
-      );
-
-      // If we're not touching width (top/bottom only), use height as basis
-      if (
-        !handlePosition.includes("left") &&
-        !handlePosition.includes("right")
-      ) {
-        newSize = Math.max(30, startHeight + signHeight * maxChange);
+      // Determine which dimension to base our calculations on
+      if (Math.abs(widthChange) > Math.abs(heightChange)) {
+        // Width is changing more, base calculations on width
+        newWidth = Math.max(30, startWidth + widthChange);
+        newHeight = Math.max(30, newWidth / aspectRatio);
+      } else {
+        // Height is changing more, base calculations on height
+        newHeight = Math.max(30, startHeight + heightChange);
+        newWidth = Math.max(30, newHeight * aspectRatio);
       }
 
-      console.log(`New square size: ${newSize}x${newSize}`);
+      console.log(
+        `New size: ${newWidth}x${newHeight}, maintaining aspect ratio: ${aspectRatio}`
+      );
 
       // Update local state and parent state
-      setItemSize({ width: newSize, height: newSize });
-      onResize(item.id, { width: newSize, height: newSize });
+      setItemSize({ width: newWidth, height: newHeight });
+      onResize(item.id, {
+        width: newWidth,
+        height: newHeight,
+        isFlipped: item.isFlipped,
+      });
     };
 
     const endHandler = (upEvent: MouseEvent) => {
@@ -366,6 +371,46 @@ const StageItemComponent: React.FC<{
     );
   };
 
+  // Render the flip button
+  const renderFlipButton = () => {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          // Toggle the isFlipped property for this item by creating a new width value
+          // This will trigger the parent to save the state
+          onResize(item.id, {
+            width: itemSize.width,
+            height: itemSize.height,
+            isFlipped: !item.isFlipped,
+          });
+        }}
+        style={{
+          position: "absolute",
+          top: "-25px",
+          left: "-12px",
+          width: "18px",
+          height: "18px",
+          borderRadius: "50%",
+          border: "1px solid #2980b9",
+          backgroundColor: "#3498db",
+          color: "white",
+          fontSize: "14px",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          cursor: "pointer",
+          padding: 0,
+          zIndex: 3,
+        }}
+        title="Flip horizontally"
+      >
+        ↔
+      </button>
+    );
+  };
+
   // We're using onDuplicate in Stage's useDrop but not directly in this component
   // This comment prevents the unused variable linter error
   React.useEffect(() => {
@@ -405,11 +450,13 @@ const StageItemComponent: React.FC<{
           objectFit: "contain",
           pointerEvents: "none",
           background: "transparent",
+          transform: item.isFlipped ? "scaleX(-1)" : "none", // Flip the image horizontally if needed
         }}
       />
       {isSelected && (
         <>
           {renderDeleteButton()}
+          {renderFlipButton()}
           <ResizeHandle
             position="top-left"
             itemId={item.id}
@@ -623,7 +670,7 @@ const Stage: React.FC<StageProps> = ({
     unknown,
     { isOver: boolean }
   >(() => ({
-    accept: ["instruments", "equipment", ItemTypes.STAGE_ITEM],
+    accept: ["instruments", "equipment", "musicians", ItemTypes.STAGE_ITEM],
     drop: (item, monitor) => {
       // If we're in lasso selection mode, don't handle drops
       if (isDraggingLasso) return undefined;
@@ -748,12 +795,15 @@ const Stage: React.FC<StageProps> = ({
       else if ("name" in item && "icon" in item) {
         console.log("Adding new item:", item);
 
+        // Get default item dimensions with fallbacks
+        const itemWidth = (item as DraggableItem).defaultWidth || 100;
+        const itemHeight = (item as DraggableItem).defaultHeight || 100;
+
         // For new items from sidebar, we need to adjust position differently
         // since we don't have initial offset - center the item at the cursor
-        // assuming most items are about 100x100px (default size) for centering
-        const itemSize = 100;
-        const adjustedX = Math.max(0, x - itemSize / 2);
-        const adjustedY = Math.max(0, y - itemSize / 2);
+        // using the item's default dimensions for more accurate positioning
+        const adjustedX = Math.max(0, x - itemWidth / 2);
+        const adjustedY = Math.max(0, y - itemHeight / 2);
 
         // Create a new item with this drop position
         const newItem = {
@@ -1135,7 +1185,8 @@ const Stage: React.FC<StageProps> = ({
                 const category =
                   item.category &&
                   (item.category === "instruments" ||
-                    item.category === "equipment")
+                    item.category === "equipment" ||
+                    item.category === "musicians")
                     ? item.category
                     : "equipment";
 

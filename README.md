@@ -59,4 +59,5 @@ export default tseslint.config({
     },
   },
 });
+``;
 ```

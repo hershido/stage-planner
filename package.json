@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/react-dnd": "^3.0.2",
     "@types/react-dnd-html5-backend": "^3.0.2",
+    "@types/uuid": "^10.0.0",
     "firebase": "^11.6.0",
     "firebase-auth": "^0.1.2",
     "html2canvas": "^1.4.1",
@@ -19,7 +20,8 @@
     "react": "^19.0.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
