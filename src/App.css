@@ -268,31 +268,147 @@ table tr.spacer-row:hover .row-insert-container,
   margin-bottom: 10px;
 }
 
-/* Fixed sidebar */
-.main-container > div:first-child {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 170px;
+/* Grid Layout */
+.main-container {
+  display: grid;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar content";
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: 70px 1fr;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.sidebar-container {
+  grid-area: sidebar;
+  position: relative;
+  height: 100%;
+  width: 200px;
   overflow-y: auto;
   z-index: 100;
   background-color: #2d2d2d;
 }
 
-/* Fix for UserMenu to ensure it's visible above sidebar */
-.main-container > div:nth-child(2) {
+.content-container {
+  grid-area: content;
+  overflow-y: auto;
+  padding: 25px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* Update the header styling */
+.app-header {
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background-color: #2d2d2d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  z-index: 100;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.config-title {
+  flex: 1;
+}
+
+.config-title h1 {
+  color: white;
+  font-size: 20px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-right: 20px;
+}
+
+.user-menu-container {
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* Adjust UserMenu when in header */
+.app-header .user-menu {
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: auto !important;
+}
+
+/* Fix for UserMenu to ensure it's visible properly when in sidebar */
+.sidebar-container .user-menu {
   position: fixed !important;
   bottom: 20px !important;
   left: 20px !important;
   z-index: 200 !important; /* Higher z-index than sidebar */
 }
 
-/* Main content area with margin for sidebar */
-.main-container > div:nth-child(3) {
-  margin-left: 170px;
-  width: calc(100% - 170px);
-  overflow-y: auto;
+.header-button {
+  width: 35px;
+  height: 35px;
+  padding: 0;
+  background: transparent;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-right: 10px;
+  transition: all 0.2s ease;
+}
+
+/* Special styling for info button with text */
+.info-button {
+  width: auto !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Styling for PDF button */
+.pdf-button {
+  width: 46px !important;
+  height: 46px !important;
+  padding: 3px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.header-button:hover {
+  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-button.disabled {
+  color: #666;
+  cursor: default;
+}
+
+.header-button.disabled:hover {
+  transform: none;
+  background-color: transparent;
 }
 
 /* ComboBox styles */
@@ -369,4 +485,12 @@ table tr.spacer-row:hover .row-insert-container,
 
 .dropdown-option:hover {
   background-color: #f0f8ff;
+}
+
+/* Main content area - Replace with the grid layout classes above */
+.main-container > div:nth-child(3) {
+  margin-left: 0;
+  width: auto;
+  overflow-y: auto;
+  padding-top: 0;
 }

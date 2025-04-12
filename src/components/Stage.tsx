@@ -445,12 +445,16 @@ const StageItemComponent: React.FC<{
         src={item.icon}
         alt={item.name}
         style={{
-          width: "80%",
-          height: "80%",
+          maxWidth: "100%",
+          maxHeight: "100%",
+          width: "auto",
+          height: "auto",
           objectFit: "contain",
           pointerEvents: "none",
           background: "transparent",
           transform: item.isFlipped ? "scaleX(-1)" : "none", // Flip the image horizontally if needed
+          display: "block",
+          margin: "auto",
         }}
       />
       {isSelected && (

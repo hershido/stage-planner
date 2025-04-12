@@ -22,6 +22,7 @@ import electricDropFourSockets from "../assets/icons/electricDrop4Sockets.svg";
 import monoDIBox from "../assets/icons/monoDIBox.svg";
 import stereoDIBox from "../assets/icons/stereoDIBox.svg";
 import iemMonitor from "../assets/icons/iemMonitor.svg";
+import wedgeMonitor from "../assets/icons/wedgeMonitor.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -386,6 +387,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       icon: iemMonitor,
       defaultWidth: 60,
       defaultHeight: 60,
+    },
+    {
+      type: "equipment",
+      subtype: "monitors",
+      name: "Wedge Monitor",
+      icon: wedgeMonitor,
+      defaultWidth: 150,
+      defaultHeight: 100,
     },
 
     // Equipment - Stage Gear

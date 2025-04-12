@@ -27,7 +27,7 @@ export interface OutputRow {
   number: string | number;
   name: string;
   channelType: string;
-  standType: string;
+  monitorType: string;
 }
 
 export interface StageInputOutput {
@@ -35,11 +35,31 @@ export interface StageInputOutput {
   outputs: OutputRow[];
 }
 
+export interface Person {
+  id: string;
+  name: string;
+  role: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface TechnicalInfo {
+  projectTitle: string;
+  personnel: Person[];
+  generalInfo: string;
+  houseSystem: string;
+  mixingDesk: string;
+  monitoring: string;
+  backline: string;
+  soundCheck: string;
+}
+
 export interface StageConfig {
   width: number;
   height: number;
   items: StageItem[];
   inputOutput?: StageInputOutput;
+  technicalInfo?: TechnicalInfo;
 }
 
 export interface DraggableItem {

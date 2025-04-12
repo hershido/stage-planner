@@ -29,6 +29,17 @@ const micDiOptions = [
   "AT4050",
 ];
 
+// Predefined options for monitor type dropdown
+const monitorOptions = [
+  "Wedge",
+  "Side Fill",
+  "Drum Fill",
+  "IEM",
+  "Hot Spot",
+  "Floor Monitor",
+  "Headphones",
+];
+
 // Predefined options for stand type dropdown
 const standOptions = ["Standard", "Baby", "Short boom", "Tall boom", "Clip-on"];
 
@@ -196,7 +207,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
           number: "1",
           name: "",
           channelType: "",
-          standType: "",
+          monitorType: "",
         },
       ]);
     }
@@ -264,7 +275,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
       number: (outputs.length + 1).toString(),
       name: "",
       channelType: "",
-      standType: "",
+      monitorType: "",
     };
     setOutputs((prev) => [...prev, newOutput]);
   };
@@ -482,9 +493,8 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
       >
         <colgroup>
           <col style={{ width: "15%" }} /> {/* Output # */}
-          <col style={{ width: "30%" }} /> {/* Channel Name */}
-          <col style={{ width: "20%" }} /> {/* Type */}
-          <col style={{ width: "20%" }} /> {/* Stand/Mount */}
+          <col style={{ width: "40%" }} /> {/* Channel Name */}
+          <col style={{ width: "30%" }} /> {/* Monitor Type */}
           <col style={{ width: "15%" }} /> {/* Actions */}
         </colgroup>
         <thead>
@@ -501,10 +511,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
               Channel Name
             </th>
             <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Type
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Stand/Mount
+              Monitor Type
             </th>
             <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
               Actions
@@ -561,18 +568,8 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
                   onChange={(value) => {
                     handleOutputChange(output.id, "channelType", value);
                   }}
-                  options={micDiOptions}
-                  placeholder="Type"
-                />
-              </td>
-              <td style={{ padding: "10px" }}>
-                <ComboBox
-                  value={output.standType}
-                  onChange={(value) => {
-                    handleOutputChange(output.id, "standType", value);
-                  }}
-                  options={standOptions}
-                  placeholder="Stand/mount type"
+                  options={monitorOptions}
+                  placeholder="Monitor type"
                 />
               </td>
               <td style={{ padding: "10px", textAlign: "center" }}>

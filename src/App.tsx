@@ -3,11 +3,17 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Stage from "./components/Stage";
 import Sidebar from "./components/Sidebar";
+import Header from "./components/Header";
 import Login from "./components/Login";
 import UserMenu from "./components/UserMenu";
-import ConfigManager from "./components/ConfigManager";
 import InputOutputTable from "./components/InputOutputTable";
-import { StageItem, DraggableItem, StageInputOutput } from "./types/stage";
+import TechnicalInfoForm from "./components/TechnicalInfoForm";
+import {
+  StageItem,
+  DraggableItem,
+  StageInputOutput,
+  TechnicalInfo,
+} from "./types/stage";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "./context/AuthContext";
@@ -39,6 +45,11 @@ function App() {
   const [inputOutput, setInputOutput] = useState<StageInputOutput | undefined>(
     undefined
   );
+  const [technicalInfo, setTechnicalInfo] = useState<TechnicalInfo | undefined>(
+    undefined
+  );
+  const [isTechnicalInfoModalOpen, setIsTechnicalInfoModalOpen] =
+    useState(false);
 
   // Use refs instead of state for the save/load functions to prevent re-renders
   const exportConfigRef = useRef<() => void>(() => {
@@ -55,6 +66,15 @@ function App() {
   const historyRef = useRef<HistoryEntry[]>([
     { items: [], latestItemId: null },
   ]);
+
+  // Function to handle technical info changes
+  const handleTechnicalInfoChange = useCallback(
+    (newTechnicalInfo: TechnicalInfo) => {
+      setTechnicalInfo(newTechnicalInfo);
+      setHasUnsavedChanges(true);
+    },
+    []
+  );
 
   // Function to add a new entry to history
   const addToHistory = useCallback(
@@ -193,7 +213,7 @@ function App() {
     };
   }, [handleUndo, handleRedo]);
 
-  // Function to handle input/output changes
+  // Handler for input/output changes
   const handleInputOutputChange = useCallback(
     (newInputOutput: StageInputOutput) => {
       setInputOutput(newInputOutput);
@@ -208,7 +228,8 @@ function App() {
       importedItems: StageItem[],
       configName: string,
       configId?: string,
-      importedInputOutput?: StageInputOutput
+      importedInputOutput?: StageInputOutput,
+      importedTechnicalInfo?: TechnicalInfo
     ) => {
       console.log(
         "Importing stage configuration with",
@@ -224,6 +245,9 @@ function App() {
 
       // Set input/output data if it exists
       setInputOutput(importedInputOutput);
+
+      // Set technical info if it exists
+      setTechnicalInfo(importedTechnicalInfo);
 
       // Add the imported state to history as the initial load
       addToHistory(importedItems, null, true);
@@ -254,7 +278,8 @@ function App() {
               latestConfig.items,
               latestConfig.name,
               latestConfig.id,
-              latestConfig.inputOutput
+              latestConfig.inputOutput,
+              latestConfig.technicalInfo
             );
           } else {
             console.log("No saved configurations found");
@@ -280,14 +305,26 @@ function App() {
       }
 
       console.log(`Saving configuration '${currentConfigName}'...`);
-      await updateConfiguration(currentConfigId, items, inputOutput);
+      await updateConfiguration(
+        currentConfigId,
+        items,
+        inputOutput,
+        technicalInfo
+      );
       setHasUnsavedChanges(false);
       alert(`Configuration '${currentConfigName}' updated successfully!`);
     } catch (error) {
       console.error("Error saving configuration:", error);
       alert("Failed to save configuration. Please try again.");
     }
-  }, [currentUser, currentConfigId, currentConfigName, items, inputOutput]);
+  }, [
+    currentUser,
+    currentConfigId,
+    currentConfigName,
+    items,
+    inputOutput,
+    technicalInfo,
+  ]);
 
   // Handler for "Save As" to create a new configuration
   const handleSaveAs = useCallback(() => {
@@ -305,20 +342,6 @@ function App() {
       console.error("Stage element not found");
       return;
     }
-
-    // Show a loading message
-    const loadingEl = document.createElement("div");
-    loadingEl.innerText = "Generating PDF...";
-    loadingEl.style.position = "absolute";
-    loadingEl.style.top = "50%";
-    loadingEl.style.left = "50%";
-    loadingEl.style.transform = "translate(-50%, -50%)";
-    loadingEl.style.padding = "10px 20px";
-    loadingEl.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-    loadingEl.style.color = "white";
-    loadingEl.style.borderRadius = "5px";
-    loadingEl.style.zIndex = "1000";
-    document.body.appendChild(loadingEl);
 
     console.log("Generating PDF...");
 
@@ -371,44 +394,392 @@ function App() {
     // Use html2canvas to capture the stage
     html2canvas(stageElement as HTMLElement, {
       backgroundColor: "#ffffff",
-      scale: 2, // Higher scale for better quality
+      scale: 3, // Higher scale for better quality
+      useCORS: true, // Try to load images with CORS if possible
+      allowTaint: true, // Allow cross-origin images
+      imageTimeout: 0, // No timeout for images
+      onclone: (clonedDoc) => {
+        // Find all images in the cloned document that will be rendered
+        const images = clonedDoc.querySelectorAll("#stage img");
+        const containers = clonedDoc.querySelectorAll("#stage > div > div");
+
+        // Fix all image containers to preserve dimensions
+        containers.forEach((container) => {
+          const containerEl = container as HTMLElement;
+          if (containerEl.style) {
+            // Ensure containers maintain proper dimensions
+            containerEl.style.display = "flex";
+            containerEl.style.alignItems = "center";
+            containerEl.style.justifyContent = "center";
+          }
+        });
+
+        // Fix all images to preserve aspect ratio
+        images.forEach((img) => {
+          // Ensure images maintain their aspect ratio and are properly contained
+          const imgEl = img as HTMLElement;
+          if (imgEl.style) {
+            imgEl.style.maxWidth = "100%";
+            imgEl.style.maxHeight = "100%";
+            imgEl.style.width = "auto";
+            imgEl.style.height = "auto";
+            imgEl.style.objectFit = "contain";
+            imgEl.style.display = "block";
+            imgEl.style.margin = "auto";
+          }
+        });
+
+        return clonedDoc;
+      },
     })
       .then((canvas) => {
         // Calculate dimensions to fit the stage properly in the PDF
-        const imgData = canvas.toDataURL("image/png");
+        const imgData = canvas.toDataURL("image/png", 1.0); // Use max quality
         const pdf = new jsPDF({
           orientation: "landscape",
           unit: "mm",
         });
 
-        // Calculate the PDF dimensions based on the canvas aspect ratio
-        const imgWidth = 280; // mm (A4 landscape width minus margins)
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        // Get PDF dimensions
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
 
-        // Add the stage image to the PDF
-        pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+        // Calculate the image dimensions while preserving aspect ratio
+        const canvasRatio = canvas.width / canvas.height;
 
-        // Add metadata
-        const date = new Date().toLocaleDateString();
-        const time = new Date().toLocaleTimeString();
-        pdf.setFontSize(10);
-        pdf.text(
-          `Stage Planner - Generated on ${date} at ${time}`,
-          10,
-          imgHeight + 15
-        );
-        pdf.text(`Total items: ${items.length}`, 10, imgHeight + 20);
+        // Set margins
+        const margin = 10; // mm
+        const maxWidth = pdfWidth - margin * 2;
+        const maxHeight = pdfHeight - margin * 2;
 
-        // Save the PDF
-        pdf.save(`stage-plan-${date.replace(/\//g, "-")}.pdf`);
+        // Determine dimensions based on aspect ratio
+        let imgWidth, imgHeight;
+
+        if (canvasRatio > maxWidth / maxHeight) {
+          // Image is wider than the available space (width limited)
+          imgWidth = maxWidth;
+          imgHeight = imgWidth / canvasRatio;
+        } else {
+          // Image is taller than the available space (height limited)
+          imgHeight = maxHeight;
+          imgWidth = imgHeight * canvasRatio;
+        }
+
+        // Center the image on the page
+        const xPos = margin + (maxWidth - imgWidth) / 2;
+
+        // Center vertically on the page with equal margins
+        const yPos = (pdfHeight - imgHeight) / 2;
+
+        // Add the stage image to the PDF with minimal compression
+        pdf.addImage({
+          imageData: imgData,
+          format: "PNG",
+          x: xPos,
+          y: yPos,
+          width: imgWidth,
+          height: imgHeight,
+          compression: "NONE", // Better quality with no compression
+        });
+
+        // Add Technical Info to the PDF if it exists
+        if (technicalInfo) {
+          // Add technical info page
+          pdf.addPage("", "portrait");
+
+          // Get portrait page dimensions
+          const portraitWidth = pdf.internal.pageSize.getWidth();
+          let yPosition = 20; // Starting Y position
+
+          // Add page title
+          pdf.setFontSize(18);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text("Technical Information", portraitWidth / 2, yPosition, {
+            align: "center",
+          });
+          yPosition += 15;
+
+          // Add project title
+          if (technicalInfo.projectTitle) {
+            pdf.setFontSize(16);
+            pdf.text(technicalInfo.projectTitle, portraitWidth / 2, yPosition, {
+              align: "center",
+            });
+            yPosition += 15;
+          }
+
+          // Add personnel section if exists
+          if (technicalInfo.personnel && technicalInfo.personnel.length > 0) {
+            pdf.setFontSize(14);
+            pdf.text("Personnel", 10, yPosition);
+            yPosition += 8;
+
+            // Create personnel table
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+
+            // Draw table headers
+            pdf.text("Name", 10, yPosition);
+            pdf.text("Role", 60, yPosition);
+            pdf.text("Phone", 110, yPosition);
+            pdf.text("Email", 160, yPosition);
+            yPosition += 2;
+
+            // Draw horizontal line
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(10, yPosition, portraitWidth - 10, yPosition);
+            yPosition += 5;
+
+            // Reset text color
+            pdf.setTextColor(0, 0, 0);
+
+            // Add personnel rows
+            technicalInfo.personnel.forEach((person, index) => {
+              pdf.text(person.name || "-", 10, yPosition);
+              pdf.text(person.role || "-", 60, yPosition);
+              pdf.text(person.phone || "-", 110, yPosition);
+              pdf.text(person.email || "-", 160, yPosition);
+              yPosition += 7;
+
+              // Add light line after each row except the last
+              if (index < technicalInfo.personnel.length - 1) {
+                pdf.setDrawColor(230, 230, 230);
+                pdf.line(10, yPosition - 3, portraitWidth - 10, yPosition - 3);
+              }
+            });
+
+            yPosition += 10;
+          }
+
+          // Helper function to add a section with title and content
+          const addSection = (title: string, content: string) => {
+            if (!content) return false;
+
+            // Check if new page is needed (less than 30mm remaining)
+            if (yPosition > pdf.internal.pageSize.getHeight() - 30) {
+              pdf.addPage("", "portrait");
+              yPosition = 20;
+            }
+
+            pdf.setFontSize(14);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(title, 10, yPosition);
+            yPosition += 8;
+
+            pdf.setFontSize(10);
+            // Split text to fit page width and handle line breaks
+            const splitText = pdf.splitTextToSize(content, portraitWidth - 20);
+            pdf.text(splitText, 10, yPosition);
+            yPosition += splitText.length * 5 + 10;
+
+            return true;
+          };
+
+          // Add each section if it has content
+          if (technicalInfo.generalInfo)
+            addSection("General Information", technicalInfo.generalInfo);
+
+          if (technicalInfo.houseSystem)
+            addSection("House System", technicalInfo.houseSystem);
+
+          if (technicalInfo.mixingDesk)
+            addSection("Mixing Desk", technicalInfo.mixingDesk);
+
+          if (technicalInfo.monitoring)
+            addSection("Monitoring", technicalInfo.monitoring);
+
+          if (technicalInfo.backline)
+            addSection("Backline", technicalInfo.backline);
+
+          if (technicalInfo.soundCheck)
+            addSection("Sound Check", technicalInfo.soundCheck);
+        }
+
+        // Add Input/Output tables to the PDF if they exist
+        if (
+          inputOutput &&
+          (inputOutput.inputs.length > 0 || inputOutput.outputs.length > 0)
+        ) {
+          // Create a new PDF in portrait orientation for the I/O tables
+          // Add a new page in portrait orientation for I/O tables
+          pdf.addPage("", "portrait");
+
+          // Get portrait page dimensions
+          const portraitWidth = pdf.internal.pageSize.getWidth();
+          const portraitHeight = pdf.internal.pageSize.getHeight();
+
+          let yPosition = 20; // Starting Y position with more space at top
+
+          // Add page title
+          pdf.setFontSize(16);
+          pdf.text("Stage Input/Output Lists", portraitWidth / 2, yPosition, {
+            align: "center",
+          });
+          yPosition += 15;
+
+          // Add Input table if there are inputs
+          if (inputOutput.inputs.length > 0) {
+            pdf.setFontSize(14);
+            pdf.text("Input List", 10, yPosition);
+            yPosition += 8;
+
+            // Set up table headers
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+
+            // Draw table headers
+            pdf.text("Input #", 10, yPosition);
+            pdf.text("Channel Name", 30, yPosition);
+            pdf.text("Mic/DI Type", 110, yPosition);
+            pdf.text("Stand Type", 170, yPosition);
+            yPosition += 2;
+
+            // Draw horizontal line under headers
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(10, yPosition, portraitWidth - 10, yPosition);
+            yPosition += 5;
+
+            // Reset text color
+            pdf.setTextColor(0, 0, 0);
+
+            // Add each input row
+            inputOutput.inputs.forEach((input, index) => {
+              pdf.text(input.number.toString(), 10, yPosition);
+              pdf.text(input.name || "-", 30, yPosition);
+              pdf.text(input.channelType || "-", 110, yPosition);
+              pdf.text(input.standType || "-", 170, yPosition);
+              yPosition += 7;
+
+              // Add a light gray line after each row except the last
+              if (index < inputOutput.inputs.length - 1) {
+                pdf.setDrawColor(230, 230, 230);
+                pdf.line(10, yPosition - 3, portraitWidth - 10, yPosition - 3);
+              }
+            });
+
+            yPosition += 5;
+          }
+
+          // Add Output table if there are outputs and enough space
+          if (inputOutput.outputs.length > 0) {
+            // Check if we need a new page (if less than 50mm remaining)
+            if (yPosition > portraitHeight - 50) {
+              pdf.addPage("", "portrait");
+              yPosition = 20;
+            } else {
+              yPosition += 10; // Add some spacing between tables
+            }
+
+            pdf.setFontSize(14);
+            pdf.text("Output List", 10, yPosition);
+            yPosition += 8;
+
+            // Set up table headers
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+
+            // Draw table headers
+            pdf.text("Output #", 10, yPosition);
+            pdf.text("Channel Name", 30, yPosition);
+            pdf.text("Monitor Type", 130, yPosition);
+            yPosition += 2;
+
+            // Draw horizontal line under headers
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(10, yPosition, portraitWidth - 10, yPosition);
+            yPosition += 5;
+
+            // Reset text color
+            pdf.setTextColor(0, 0, 0);
+
+            // Add each output row
+            inputOutput.outputs.forEach((output, index) => {
+              pdf.text(output.number.toString(), 10, yPosition);
+              pdf.text(output.name || "-", 30, yPosition);
+              pdf.text(output.monitorType || "-", 130, yPosition);
+              yPosition += 7;
+
+              // Add a light gray line after each row except the last
+              if (index < inputOutput.outputs.length - 1) {
+                pdf.setDrawColor(230, 230, 230);
+                pdf.line(10, yPosition - 3, portraitWidth - 10, yPosition - 3);
+              }
+            });
+          }
+        }
+
+        // Generate the filename with configuration name and date
+        const currentDate = new Date().toLocaleDateString().replace(/\//g, "-");
+        const fileName = currentConfigName
+          ? `${currentConfigName.replace(
+              /[/\\?%*:|"<>]/g,
+              "-"
+            )}-${currentDate}.pdf`
+          : `stage-plan-${currentDate}.pdf`;
+
+        // Create a blob from the PDF to use with showSaveFilePicker
+        const pdfBlob = pdf.output("blob");
+
+        // Use the File System Access API if available (Chrome, Edge)
+        if ("showSaveFilePicker" in window) {
+          const opts = {
+            suggestedName: fileName,
+            types: [
+              {
+                description: "PDF File",
+                accept: { "application/pdf": [".pdf"] },
+              },
+            ],
+          };
+
+          // Show the system save dialog
+          // @ts-expect-error The File System Access API might not be typed
+          window
+            .showSaveFilePicker(opts)
+            .then(async (fileHandle: FileSystemFileHandle) => {
+              // Get a writable stream to the file
+              const writable = await fileHandle.createWritable();
+              // Write the PDF blob to the file
+              await writable.write(pdfBlob);
+              // Close the file and finalize it
+              await writable.close();
+              console.log("PDF saved successfully");
+            })
+            .catch((err: Error) => {
+              // Check if this is a user cancellation (AbortError)
+              if (err.name === "AbortError") {
+                console.log("Save dialog was canceled by user");
+                // Do nothing if user canceled
+                return;
+              }
+
+              // Only fall back to download for other types of errors
+              console.log("Error in save dialog:", err);
+              // Create a URL for the blob
+              const blobUrl = URL.createObjectURL(pdfBlob);
+              // Create a link element and trigger the download
+              const a = document.createElement("a");
+              a.href = blobUrl;
+              a.download = fileName;
+              a.click();
+              // Clean up
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            });
+        } else {
+          // Fallback for browsers without File System Access API
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = fileName;
+          a.click();
+          // Clean up
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        }
 
         // Restore original styles
         originalStyles.forEach((item) => {
           (item.element as HTMLElement).style.cssText = item.style;
         });
-
-        // Remove loading element
-        document.body.removeChild(loadingEl);
 
         console.log("PDF generated successfully");
       })
@@ -419,9 +790,8 @@ function App() {
         });
 
         console.error("Error generating PDF:", error);
-        document.body.removeChild(loadingEl);
       });
-  }, [items]);
+  }, [items, inputOutput, technicalInfo, currentConfigName]);
 
   const handleDrop = useCallback(
     (item: DraggableItem, position: { x: number; y: number }) => {
@@ -649,135 +1019,39 @@ function App() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div
-        className="main-container"
-        style={{ display: "flex", height: "100vh" }}
-      >
-        <Sidebar onItemClick={handleSidebarItemClick} />
-        <UserMenu />
-        <div
-          style={{
-            flex: 1,
-            padding: "16px",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          {/* Add control toolbar */}
-          <div
-            style={{
-              display: "flex",
-              gap: "5px",
-              marginBottom: "10px",
-              padding: "5px",
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              zIndex: 50,
-              background: "rgba(255, 255, 255, 0.8)",
-              borderRadius: "4px",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-            }}
-          >
-            <ConfigManager
-              items={items}
-              inputOutput={inputOutput}
-              onLoad={handleImport}
-              currentConfigName={currentConfigName}
-              currentConfigId={currentConfigId}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onSave={handleSave}
-              onSaveAs={handleSaveAs}
-            />
-            <button
-              onClick={handleExportPDF}
-              title="Export to PDF"
-              style={{
-                width: "30px",
-                height: "30px",
-                padding: "0",
-                background: "#fff",
-                color: "#666",
-                border: "1px solid #ddd",
-                borderRadius: "4px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "16px",
-                marginRight: "10px",
-              }}
-            >
-              📄
-            </button>
-            <button
-              onClick={handleUndo}
-              disabled={currentHistoryIndex <= 0}
-              title="Undo (Cmd+Z / Ctrl+Z)"
-              style={{
-                width: "30px",
-                height: "30px",
-                padding: "0",
-                background: currentHistoryIndex <= 0 ? "#f0f0f0" : "#fff",
-                color: currentHistoryIndex <= 0 ? "#ccc" : "#666",
-                border: "1px solid #ddd",
-                borderRadius: "4px",
-                cursor: currentHistoryIndex <= 0 ? "default" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "16px",
-              }}
-            >
-              ↩
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={currentHistoryIndex >= historyLength - 1}
-              title="Redo (Cmd+Shift+Z / Ctrl+Shift+Z)"
-              style={{
-                width: "30px",
-                height: "30px",
-                padding: "0",
-                background:
-                  currentHistoryIndex >= historyLength - 1 ? "#f0f0f0" : "#fff",
-                color:
-                  currentHistoryIndex >= historyLength - 1 ? "#ccc" : "#666",
-                border: "1px solid #ddd",
-                borderRadius: "4px",
-                cursor:
-                  currentHistoryIndex >= historyLength - 1
-                    ? "default"
-                    : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "16px",
-              }}
-            >
-              ↪
-            </button>
-          </div>
+      <div className="main-container">
+        <div className="sidebar-container">
+          <Sidebar onItemClick={handleSidebarItemClick} />
+        </div>
 
-          {/* Current configuration name display */}
-          {currentConfigName && (
-            <div
-              style={{
-                position: "absolute",
-                top: "25px",
-                left: "23%",
-                transform: "translateX(-50%)",
-                zIndex: 50,
-                color: "white",
-                fontSize: "24px",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-                filter: "drop-shadow(0 0 5px rgba(255,255,255,0.3))",
-              }}
-            >
-              {hasUnsavedChanges ? `${currentConfigName} *` : currentConfigName}
-            </div>
-          )}
+        <Header
+          items={items}
+          inputOutput={inputOutput}
+          technicalInfo={technicalInfo}
+          onLoad={handleImport}
+          currentConfigName={currentConfigName}
+          currentConfigId={currentConfigId}
+          hasUnsavedChanges={hasUnsavedChanges}
+          onSave={handleSave}
+          onSaveAs={handleSaveAs}
+          handleExportPDF={handleExportPDF}
+          handleUndo={handleUndo}
+          handleRedo={handleRedo}
+          currentHistoryIndex={currentHistoryIndex}
+          historyLength={historyLength}
+          openTechnicalInfo={() => setIsTechnicalInfoModalOpen(true)}
+        >
+          <UserMenu />
+        </Header>
+
+        <div className="content-container">
+          {/* Technical Info Modal */}
+          <TechnicalInfoForm
+            isOpen={isTechnicalInfoModalOpen}
+            onClose={() => setIsTechnicalInfoModalOpen(false)}
+            technicalInfo={technicalInfo}
+            onSave={handleTechnicalInfoChange}
+          />
 
           {/* Stage container */}
           <div

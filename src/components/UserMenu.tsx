@@ -48,6 +48,7 @@ const UserMenu: React.FC = () => {
             width: "32px",
             height: "32px",
             borderRadius: "50%",
+            objectFit: "cover",
           }}
           onError={() => setAvatarError(true)}
         />
@@ -65,6 +66,7 @@ const UserMenu: React.FC = () => {
             alignItems: "center",
             justifyContent: "center",
             fontWeight: "bold",
+            fontSize: "16px",
           }}
         >
           {getUserInitial()}
@@ -75,6 +77,7 @@ const UserMenu: React.FC = () => {
 
   return (
     <div
+      className="user-menu"
       style={{
         position: "absolute",
         bottom: "20px",
@@ -87,34 +90,35 @@ const UserMenu: React.FC = () => {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
+          justifyContent: "center",
           cursor: "pointer",
-          padding: "8px",
+          padding: "4px",
           background: "white",
           color: "#333",
-          borderRadius: "4px",
+          borderRadius: "50%",
           boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
           border: "1px solid #e0e0e0",
+          width: "40px",
+          height: "40px",
         }}
       >
         {renderAvatar()}
-        <span style={{ fontSize: "14px", fontWeight: "500" }}>
-          {currentUser.displayName || currentUser.email || "User"}
-        </span>
       </div>
 
       {menuOpen && (
         <div
           style={{
             position: "absolute",
-            bottom: "60px",
-            left: "0",
+            bottom: "auto",
+            top: "50px",
+            right: "0",
             background: "white",
             padding: "10px",
             borderRadius: "4px",
             boxShadow: "0 2px 5px rgba(0, 0, 0, 0.2)",
             width: "200px",
             border: "1px solid #e0e0e0",
+            zIndex: 300,
           }}
         >
           <div

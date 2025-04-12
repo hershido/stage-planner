@@ -10,7 +10,12 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { StageItem, Category, StageInputOutput } from "../types/stage";
+import {
+  StageItem,
+  Category,
+  StageInputOutput,
+  TechnicalInfo,
+} from "../types/stage";
 
 // For storing in Firestore
 interface StorableItem {
@@ -38,12 +43,32 @@ interface StorableOutputRow {
   number: number;
   name: string;
   channelType: string;
-  standType: string;
+  monitorType: string;
 }
 
 interface StorableInputOutput {
   inputs: StorableInputRow[];
   outputs: StorableOutputRow[];
+}
+
+// New interface for storing technical info in Firestore
+interface StorablePerson {
+  id: string;
+  name: string;
+  role: string;
+  phone?: string;
+  email?: string;
+}
+
+interface StorableTechnicalInfo {
+  projectTitle: string;
+  personnel: StorablePerson[];
+  generalInfo: string;
+  houseSystem: string;
+  mixingDesk: string;
+  monitoring: string;
+  backline: string;
+  soundCheck: string;
 }
 
 // Interface for Firestore document
@@ -52,6 +77,7 @@ interface FirestoreStageConfig {
   userId: string;
   items: StorableItem[];
   inputOutput?: StorableInputOutput;
+  technicalInfo?: StorableTechnicalInfo; // Add technical info
   createdAt: Timestamp;
   lastAccessed?: Timestamp; // Optional for backward compatibility
 }
@@ -63,6 +89,7 @@ export interface SavedConfig {
   userId: string;
   items: StageItem[];
   inputOutput?: StageInputOutput;
+  technicalInfo?: TechnicalInfo; // Add technical info
   createdAt: Timestamp;
   lastAccessed?: Timestamp; // Optional for backward compatibility
 }
@@ -101,8 +128,32 @@ function sanitizeInputOutputForFirestore(
       number: Number(output.number || 0),
       name: String(output.name || ""),
       channelType: String(output.channelType || ""),
-      standType: String(output.standType || ""),
+      monitorType: String(output.monitorType || ""),
     })),
+  };
+}
+
+// Sanitize technical info for Firestore
+function sanitizeTechnicalInfoForFirestore(
+  technicalInfo?: TechnicalInfo
+): StorableTechnicalInfo | undefined {
+  if (!technicalInfo) return undefined;
+
+  return {
+    projectTitle: String(technicalInfo.projectTitle || ""),
+    personnel: technicalInfo.personnel.map((person) => ({
+      id: String(person.id || ""),
+      name: String(person.name || ""),
+      role: String(person.role || ""),
+      phone: person.phone ? String(person.phone) : undefined,
+      email: person.email ? String(person.email) : undefined,
+    })),
+    generalInfo: String(technicalInfo.generalInfo || ""),
+    houseSystem: String(technicalInfo.houseSystem || ""),
+    mixingDesk: String(technicalInfo.mixingDesk || ""),
+    monitoring: String(technicalInfo.monitoring || ""),
+    backline: String(technicalInfo.backline || ""),
+    soundCheck: String(technicalInfo.soundCheck || ""),
   };
 }
 
@@ -141,8 +192,32 @@ function convertToStageInputOutput(
       number: output.number,
       name: output.name,
       channelType: output.channelType,
-      standType: output.standType,
+      monitorType: output.monitorType,
     })),
+  };
+}
+
+// Convert Firestore technical info back to TechnicalInfo format
+function convertToTechnicalInfo(
+  technicalInfo?: StorableTechnicalInfo
+): TechnicalInfo | undefined {
+  if (!technicalInfo) return undefined;
+
+  return {
+    projectTitle: technicalInfo.projectTitle,
+    personnel: technicalInfo.personnel.map((person) => ({
+      id: person.id,
+      name: person.name,
+      role: person.role,
+      phone: person.phone,
+      email: person.email,
+    })),
+    generalInfo: technicalInfo.generalInfo,
+    houseSystem: technicalInfo.houseSystem,
+    mixingDesk: technicalInfo.mixingDesk,
+    monitoring: technicalInfo.monitoring,
+    backline: technicalInfo.backline,
+    soundCheck: technicalInfo.soundCheck,
   };
 }
 
@@ -151,7 +226,8 @@ export const saveConfiguration = async (
   userId: string,
   name: string,
   items: StageItem[],
-  inputOutput?: StageInputOutput
+  inputOutput?: StageInputOutput,
+  technicalInfo?: TechnicalInfo
 ): Promise<string> => {
   try {
     // First check if there are items
@@ -161,6 +237,8 @@ export const saveConfiguration = async (
 
     const sanitizedItems = sanitizeForFirestore(items);
     const sanitizedInputOutput = sanitizeInputOutputForFirestore(inputOutput);
+    const sanitizedTechnicalInfo =
+      sanitizeTechnicalInfoForFirestore(technicalInfo);
 
     // Create a simple object with just primitive types
     const configData = {
@@ -168,6 +246,7 @@ export const saveConfiguration = async (
       userId: String(userId),
       items: sanitizedItems,
       inputOutput: sanitizedInputOutput,
+      technicalInfo: sanitizedTechnicalInfo,
       createdAt: Timestamp.now(),
       lastAccessed: Timestamp.now(), // Set initial lastAccessed to creation time
     };
@@ -216,6 +295,7 @@ export const getUserConfigurations = async (
         userId: data.userId,
         items: convertToStageItems(data.items || []),
         inputOutput: convertToStageInputOutput(data.inputOutput),
+        technicalInfo: convertToTechnicalInfo(data.technicalInfo),
         createdAt: data.createdAt,
         lastAccessed: data.lastAccessed,
       });
@@ -281,7 +361,8 @@ export const updateLastAccessed = async (configId: string): Promise<void> => {
 export const updateConfiguration = async (
   configId: string,
   items: StageItem[],
-  inputOutput?: StageInputOutput
+  inputOutput?: StageInputOutput,
+  technicalInfo?: TechnicalInfo
 ): Promise<void> => {
   try {
     if (!items || !items.length) {
@@ -291,12 +372,15 @@ export const updateConfiguration = async (
     const configRef = doc(db, "stage-configs", configId);
     const sanitizedItems = sanitizeForFirestore(items);
     const sanitizedInputOutput = sanitizeInputOutputForFirestore(inputOutput);
+    const sanitizedTechnicalInfo =
+      sanitizeTechnicalInfoForFirestore(technicalInfo);
 
     await setDoc(
       configRef,
       {
         items: sanitizedItems,
         inputOutput: sanitizedInputOutput,
+        technicalInfo: sanitizedTechnicalInfo,
         lastAccessed: Timestamp.now(),
       },
       { merge: true }

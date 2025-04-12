@@ -6,21 +6,23 @@ import {
   deleteConfiguration,
   SavedConfig,
 } from "../services/configService";
-import { StageItem, StageInputOutput } from "../types/stage";
+import { StageItem, StageInputOutput, TechnicalInfo } from "../types/stage";
 
 interface ConfigManagerProps {
   items: StageItem[];
   inputOutput?: StageInputOutput;
+  technicalInfo?: TechnicalInfo;
   onLoad: (
     items: StageItem[],
     configName: string,
     configId?: string,
-    inputOutput?: StageInputOutput
+    inputOutput?: StageInputOutput,
+    technicalInfo?: TechnicalInfo
   ) => void;
   currentConfigName: string | null;
-  currentConfigId?: string | null;
-  hasUnsavedChanges?: boolean;
-  onSave?: () => void;
+  currentConfigId: string | null;
+  hasUnsavedChanges: boolean;
+  onSave: () => void;
   onSaveAs?: () => void;
 }
 
@@ -28,6 +30,7 @@ interface ConfigManagerProps {
 const ConfigManager: React.FC<ConfigManagerProps> = ({
   items,
   inputOutput,
+  technicalInfo,
   onLoad,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   currentConfigName,
@@ -110,14 +113,15 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
           currentUser.uid,
           configName,
           items,
-          inputOutput
+          inputOutput,
+          technicalInfo
         );
         setConfigName("");
         closeModal();
 
         // Update current configuration to the one we just saved
         if (newConfigId) {
-          onLoad(items, configName, newConfigId, inputOutput);
+          onLoad(items, configName, newConfigId, inputOutput, technicalInfo);
         }
 
         // Add success message
@@ -154,7 +158,13 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
       }
 
       console.log("Loading configuration:", config);
-      onLoad(config.items, config.name, config.id, config.inputOutput);
+      onLoad(
+        config.items,
+        config.name,
+        config.id,
+        config.inputOutput,
+        config.technicalInfo
+      );
       closeModal();
     } catch (error) {
       console.error("Error loading configuration:", error);
@@ -191,22 +201,14 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
 
   // Buttons to open the modal
   const renderButtons = () => (
-    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
       {/* Save button - enabled only when we have unsaved changes and a current config ID */}
       <button
         onClick={onSave}
         disabled={!hasUnsavedChanges || !currentConfigId}
-        style={{
-          padding: "6px 12px",
-          backgroundColor:
-            !hasUnsavedChanges || !currentConfigId ? "#a9d4f1" : "#3498db",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor:
-            !hasUnsavedChanges || !currentConfigId ? "default" : "pointer",
-          fontSize: "14px",
-        }}
+        className={`header-button ${
+          !hasUnsavedChanges || !currentConfigId ? "disabled" : ""
+        }`}
         title={
           !currentConfigId
             ? "No configuration loaded to save"
@@ -215,7 +217,7 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
             : "Save changes to current configuration"
         }
       >
-        Save
+        <span style={{ fontFamily: "sans-serif" }}>&#128190;</span>
       </button>
 
       {/* Save As button - always enabled */}
@@ -224,35 +226,19 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
           if (onSaveAs) onSaveAs();
           openSaveModal();
         }}
-        style={{
-          padding: "6px 12px",
-          backgroundColor: "#27ae60",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontSize: "14px",
-        }}
+        className="header-button"
         title="Save as a new configuration"
       >
-        Save As
+        <span style={{ fontFamily: "sans-serif" }}>&#128190;+</span>
       </button>
 
       {/* Load button */}
       <button
         onClick={openLoadModal}
-        style={{
-          padding: "6px 12px",
-          backgroundColor: "#f0f0f0",
-          color: "#333",
-          border: "1px solid #ddd",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontSize: "14px",
-        }}
+        className="header-button"
         title="Load configuration"
       >
-        Load
+        <span style={{ fontFamily: "sans-serif" }}>&#128194;</span>
       </button>
     </div>
   );
