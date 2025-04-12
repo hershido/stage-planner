@@ -1,4 +1,4 @@
-export type Category = "instruments" | "equipment" | "musicians";
+export type Category = "instruments" | "equipment" | "musicians" | "labels";
 
 export interface StageItem {
   id: string;
@@ -12,6 +12,13 @@ export interface StageItem {
   width?: number;
   height?: number;
   isFlipped?: boolean;
+  textContent?: string; // Text content for text label items
+  textFormatting?: {
+    isBold?: boolean;
+    isItalic?: boolean;
+    fontSize?: number; // Font size in pixels
+    textColor?: string; // Text color in CSS color format
+  };
 }
 
 export interface InputRow {

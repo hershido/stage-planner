@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Stage from "./components/Stage";
@@ -42,12 +42,20 @@ function App() {
   );
   const [currentConfigId, setCurrentConfigId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [inputOutput, setInputOutput] = useState<StageInputOutput | undefined>(
-    undefined
-  );
-  const [technicalInfo, setTechnicalInfo] = useState<TechnicalInfo | undefined>(
-    undefined
-  );
+  const [inputOutput, setInputOutput] = useState<StageInputOutput>({
+    inputs: [],
+    outputs: [],
+  });
+  const [technicalInfo, setTechnicalInfo] = useState<TechnicalInfo>({
+    projectTitle: "",
+    personnel: [],
+    generalInfo: "",
+    houseSystem: "",
+    mixingDesk: "",
+    monitoring: "",
+    backline: "",
+    soundCheck: "",
+  });
   const [isTechnicalInfoModalOpen, setIsTechnicalInfoModalOpen] =
     useState(false);
 
@@ -70,10 +78,53 @@ function App() {
   // Function to handle technical info changes
   const handleTechnicalInfoChange = useCallback(
     (newTechnicalInfo: TechnicalInfo) => {
-      setTechnicalInfo(newTechnicalInfo);
-      setHasUnsavedChanges(true);
+      // Deep equality check to avoid unnecessary updates and unsaved changes flag
+      const isSame = (a: TechnicalInfo, b: TechnicalInfo): boolean => {
+        // Compare all simple properties first
+        if (
+          a.projectTitle !== b.projectTitle ||
+          a.generalInfo !== b.generalInfo ||
+          a.houseSystem !== b.houseSystem ||
+          a.mixingDesk !== b.mixingDesk ||
+          a.monitoring !== b.monitoring ||
+          a.backline !== b.backline ||
+          a.soundCheck !== b.soundCheck
+        ) {
+          return false;
+        }
+
+        // Check personnel arrays length first
+        if (a.personnel.length !== b.personnel.length) {
+          return false;
+        }
+
+        // Check each personnel item deeply
+        for (let i = 0; i < a.personnel.length; i++) {
+          const personA = a.personnel[i];
+          const personB = b.personnel[i];
+
+          if (
+            personA.id !== personB.id ||
+            personA.name !== personB.name ||
+            personA.role !== personB.role ||
+            personA.phone !== personB.phone ||
+            personA.email !== personB.email
+          ) {
+            return false;
+          }
+        }
+
+        // If we made it here, all properties are the same
+        return true;
+      };
+
+      // Only set technicalInfo and mark as unsaved if there are actual changes
+      if (!isSame(technicalInfo, newTechnicalInfo)) {
+        setTechnicalInfo(newTechnicalInfo);
+        setHasUnsavedChanges(true);
+      }
     },
-    []
+    [technicalInfo]
   );
 
   // Function to add a new entry to history
@@ -244,10 +295,21 @@ function App() {
       setHasUnsavedChanges(false);
 
       // Set input/output data if it exists
-      setInputOutput(importedInputOutput);
+      setInputOutput(importedInputOutput || { inputs: [], outputs: [] });
 
       // Set technical info if it exists
-      setTechnicalInfo(importedTechnicalInfo);
+      setTechnicalInfo(
+        importedTechnicalInfo || {
+          projectTitle: "",
+          personnel: [],
+          generalInfo: "",
+          houseSystem: "",
+          mixingDesk: "",
+          monitoring: "",
+          backline: "",
+          soundCheck: "",
+        }
+      );
 
       // Add the imported state to history as the initial load
       addToHistory(importedItems, null, true);
@@ -256,6 +318,23 @@ function App() {
       if (configId) {
         updateLastAccessed(configId);
       }
+    },
+    [addToHistory]
+  );
+
+  // Handler for updating just the items from text editing
+  const handleItemsUpdate = useCallback(
+    (updatedItems: StageItem[]) => {
+      console.log("Updating items from text edit:", updatedItems.length);
+
+      // Update the items state
+      setItems(updatedItems);
+
+      // Mark that we have unsaved changes
+      setHasUnsavedChanges(true);
+
+      // Add to history
+      addToHistory(updatedItems, null);
     },
     [addToHistory]
   );
@@ -294,6 +373,19 @@ function App() {
     loadLatestConfig();
   }, [currentUser, handleImport]); // Re-run if the user changes or handleImport changes
 
+  // Ensure we don't mark the app as having unsaved changes after initial load
+  useEffect(() => {
+    // Wait for any initial data loading to complete
+    const timer = setTimeout(() => {
+      if (currentConfigId) {
+        // If we have a configuration loaded, reset unsaved changes flag
+        setHasUnsavedChanges(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [currentConfigId]);
+
   // Handler for saving current configuration
   const handleSave = useCallback(async () => {
     if (!currentUser) return;
@@ -305,6 +397,9 @@ function App() {
       }
 
       console.log(`Saving configuration '${currentConfigName}'...`);
+      console.log("Current items state being saved:", items);
+
+      // Explicitly ensure we have the latest state of items
       await updateConfiguration(
         currentConfigId,
         items,
@@ -332,6 +427,97 @@ function App() {
     // This just opens the modal - actual saving is handled in the ConfigManager component
     console.log("Opening Save As modal");
   }, []);
+
+  // Handler for creating a new empty configuration
+  const handleNewConfig = useCallback(() => {
+    // Check if there are unsaved changes
+    if (hasUnsavedChanges) {
+      // Ask user if they want to save changes first
+      const confirmResult = window.confirm(
+        "Save changes to current configuration before creating a new one?"
+      );
+
+      if (confirmResult) {
+        // Save changes first
+        handleSave()
+          .then(() => {
+            // After saving, clear the configuration
+            setItems([]);
+            setLatestItemId(null);
+            setCurrentConfigName(null);
+            setCurrentConfigId(null);
+            setHasUnsavedChanges(false);
+            setInputOutput({ inputs: [], outputs: [] });
+            setTechnicalInfo({
+              projectTitle: "",
+              personnel: [],
+              generalInfo: "",
+              houseSystem: "",
+              mixingDesk: "",
+              monitoring: "",
+              backline: "",
+              soundCheck: "",
+            });
+
+            // Reset history
+            historyRef.current = [{ items: [], latestItemId: null }];
+            setCurrentHistoryIndex(0);
+            setHistoryLength(1);
+          })
+          .catch((error) => {
+            console.error("Error saving before clearing:", error);
+            alert(
+              "Failed to save configuration. New configuration not created."
+            );
+          });
+      } else {
+        // User chose not to save, just clear the configuration
+        setItems([]);
+        setLatestItemId(null);
+        setCurrentConfigName(null);
+        setCurrentConfigId(null);
+        setHasUnsavedChanges(false);
+        setInputOutput({ inputs: [], outputs: [] });
+        setTechnicalInfo({
+          projectTitle: "",
+          personnel: [],
+          generalInfo: "",
+          houseSystem: "",
+          mixingDesk: "",
+          monitoring: "",
+          backline: "",
+          soundCheck: "",
+        });
+
+        // Reset history
+        historyRef.current = [{ items: [], latestItemId: null }];
+        setCurrentHistoryIndex(0);
+        setHistoryLength(1);
+      }
+    } else {
+      // No unsaved changes, just clear the configuration
+      setItems([]);
+      setLatestItemId(null);
+      setCurrentConfigName(null);
+      setCurrentConfigId(null);
+      setInputOutput({ inputs: [], outputs: [] });
+      setTechnicalInfo({
+        projectTitle: "",
+        personnel: [],
+        generalInfo: "",
+        houseSystem: "",
+        mixingDesk: "",
+        monitoring: "",
+        backline: "",
+        soundCheck: "",
+      });
+
+      // Reset history
+      historyRef.current = [{ items: [], latestItemId: null }];
+      setCurrentHistoryIndex(0);
+      setHistoryLength(1);
+    }
+  }, [handleSave, hasUnsavedChanges]);
 
   // Function to export stage to PDF
   const handleExportPDF = useCallback(() => {
@@ -812,6 +998,8 @@ function App() {
         position,
         width: itemWidth,
         height: itemHeight,
+        // Initialize textContent for Text Label items
+        textContent: item.name === "Text Label" ? "Click to edit" : undefined,
       };
 
       console.log(
@@ -1034,6 +1222,7 @@ function App() {
           hasUnsavedChanges={hasUnsavedChanges}
           onSave={handleSave}
           onSaveAs={handleSaveAs}
+          onNewConfig={handleNewConfig}
           handleExportPDF={handleExportPDF}
           handleUndo={handleUndo}
           handleRedo={handleRedo}
@@ -1095,8 +1284,8 @@ function App() {
                   latestItemId={latestItemId}
                   onItemSelected={handleItemSelected}
                   onImport={(importedItems) => {
-                    // Default to empty string if no config name available when directly imported
-                    handleImport(importedItems, "");
+                    // Use handleItemsUpdate instead of handleImport for text edits
+                    handleItemsUpdate(importedItems);
                   }}
                   onExport={(handler) => {
                     console.log("Setting export handler in App");

@@ -27,6 +27,14 @@ interface StorableItem {
   posY: number;
   width: number;
   height: number;
+  isFlipped?: boolean;
+  textContent?: string;
+  textFormatting?: {
+    isBold?: boolean;
+    isItalic?: boolean;
+    fontSize?: number;
+    textColor?: string;
+  };
 }
 
 // Input/Output interfaces for Firestore
@@ -97,16 +105,61 @@ export interface SavedConfig {
 // Clean and prepare items for Firestore storage
 function sanitizeForFirestore(items: StageItem[]): StorableItem[] {
   console.log("Original items:", JSON.stringify(items));
-  return items.map((item) => ({
-    id: String(item.id || ""),
-    name: String(item.name || ""),
-    category: String(item.category || ""),
-    icon: String(item.icon || ""),
-    posX: Number(item.position?.x || 0),
-    posY: Number(item.position?.y || 0),
-    width: Number(item.width || 200),
-    height: Number(item.height || 200),
-  }));
+  return items.map((item) => {
+    // Create the base item with required fields
+    const sanitizedItem: StorableItem = {
+      id: String(item.id || ""),
+      name: String(item.name || ""),
+      category: String(item.category || ""),
+      icon: String(item.icon || ""),
+      posX: Number(item.position?.x || 0),
+      posY: Number(item.position?.y || 0),
+      width: Number(item.width || 200),
+      height: Number(item.height || 200),
+      isFlipped: Boolean(item.isFlipped),
+    };
+
+    // Add textContent only if it's defined and not null
+    if (item.textContent !== undefined && item.textContent !== null) {
+      sanitizedItem.textContent = String(item.textContent);
+    }
+
+    // Add textFormatting only if it exists and has defined properties
+    if (item.textFormatting) {
+      const formatting: {
+        isBold?: boolean;
+        isItalic?: boolean;
+        fontSize?: number;
+        textColor?: string;
+      } = {};
+
+      // Add each property only if it's defined
+      if (item.textFormatting.isBold !== undefined) {
+        formatting.isBold = Boolean(item.textFormatting.isBold);
+      }
+
+      if (item.textFormatting.isItalic !== undefined) {
+        formatting.isItalic = Boolean(item.textFormatting.isItalic);
+      }
+
+      if (item.textFormatting.fontSize !== undefined) {
+        formatting.fontSize = Number(item.textFormatting.fontSize || 14);
+      }
+
+      if (item.textFormatting.textColor !== undefined) {
+        formatting.textColor = String(
+          item.textFormatting.textColor || "#333333"
+        );
+      }
+
+      // Only add the formatting object if it has any properties
+      if (Object.keys(formatting).length > 0) {
+        sanitizedItem.textFormatting = formatting;
+      }
+    }
+
+    return sanitizedItem;
+  });
 }
 
 // Sanitize input/output data for Firestore
@@ -115,22 +168,40 @@ function sanitizeInputOutputForFirestore(
 ): StorableInputOutput | undefined {
   if (!inputOutput) return undefined;
 
-  return {
-    inputs: inputOutput.inputs.map((input) => ({
-      id: String(input.id || ""),
-      number: Number(input.number || 0),
-      name: String(input.name || ""),
-      channelType: String(input.channelType || ""),
-      standType: String(input.standType || ""),
-    })),
-    outputs: inputOutput.outputs.map((output) => ({
-      id: String(output.id || ""),
-      number: Number(output.number || 0),
-      name: String(output.name || ""),
-      channelType: String(output.channelType || ""),
-      monitorType: String(output.monitorType || ""),
-    })),
+  const sanitized: StorableInputOutput = {
+    inputs: [],
+    outputs: [],
   };
+
+  // Process inputs if they exist
+  if (Array.isArray(inputOutput.inputs)) {
+    sanitized.inputs = inputOutput.inputs.map((input) => {
+      const sanitizedInput: StorableInputRow = {
+        id: String(input.id || ""),
+        number: Number(input.number || 0),
+        name: String(input.name || ""),
+        channelType: String(input.channelType || ""),
+        standType: String(input.standType || ""),
+      };
+      return sanitizedInput;
+    });
+  }
+
+  // Process outputs if they exist
+  if (Array.isArray(inputOutput.outputs)) {
+    sanitized.outputs = inputOutput.outputs.map((output) => {
+      const sanitizedOutput: StorableOutputRow = {
+        id: String(output.id || ""),
+        number: Number(output.number || 0),
+        name: String(output.name || ""),
+        channelType: String(output.channelType || ""),
+        monitorType: String(output.monitorType || ""),
+      };
+      return sanitizedOutput;
+    });
+  }
+
+  return sanitized;
 }
 
 // Sanitize technical info for Firestore
@@ -139,15 +210,9 @@ function sanitizeTechnicalInfoForFirestore(
 ): StorableTechnicalInfo | undefined {
   if (!technicalInfo) return undefined;
 
-  return {
+  const sanitized: StorableTechnicalInfo = {
     projectTitle: String(technicalInfo.projectTitle || ""),
-    personnel: technicalInfo.personnel.map((person) => ({
-      id: String(person.id || ""),
-      name: String(person.name || ""),
-      role: String(person.role || ""),
-      phone: person.phone ? String(person.phone) : undefined,
-      email: person.email ? String(person.email) : undefined,
-    })),
+    personnel: [],
     generalInfo: String(technicalInfo.generalInfo || ""),
     houseSystem: String(technicalInfo.houseSystem || ""),
     mixingDesk: String(technicalInfo.mixingDesk || ""),
@@ -155,6 +220,30 @@ function sanitizeTechnicalInfoForFirestore(
     backline: String(technicalInfo.backline || ""),
     soundCheck: String(technicalInfo.soundCheck || ""),
   };
+
+  // Process personnel if they exist
+  if (Array.isArray(technicalInfo.personnel)) {
+    sanitized.personnel = technicalInfo.personnel.map((person) => {
+      const sanitizedPerson: StorablePerson = {
+        id: String(person.id || ""),
+        name: String(person.name || ""),
+        role: String(person.role || ""),
+      };
+
+      // Only add optional fields if they're defined
+      if (person.phone) {
+        sanitizedPerson.phone = String(person.phone);
+      }
+
+      if (person.email) {
+        sanitizedPerson.email = String(person.email);
+      }
+
+      return sanitizedPerson;
+    });
+  }
+
+  return sanitized;
 }
 
 // Convert Firestore items back to StageItem format
@@ -170,6 +259,16 @@ function convertToStageItems(items: StorableItem[]): StageItem[] {
     },
     width: item.width,
     height: item.height,
+    isFlipped: item.isFlipped,
+    textContent: item.textContent,
+    textFormatting: item.textFormatting
+      ? {
+          isBold: item.textFormatting.isBold,
+          isItalic: item.textFormatting.isItalic,
+          fontSize: item.textFormatting.fontSize,
+          textColor: item.textFormatting.textColor,
+        }
+      : undefined,
   }));
 }
 
@@ -180,20 +279,24 @@ function convertToStageInputOutput(
   if (!inputOutput) return undefined;
 
   return {
-    inputs: inputOutput.inputs.map((input) => ({
-      id: input.id,
-      number: input.number,
-      name: input.name,
-      channelType: input.channelType,
-      standType: input.standType,
-    })),
-    outputs: inputOutput.outputs.map((output) => ({
-      id: output.id,
-      number: output.number,
-      name: output.name,
-      channelType: output.channelType,
-      monitorType: output.monitorType,
-    })),
+    inputs: Array.isArray(inputOutput.inputs)
+      ? inputOutput.inputs.map((input) => ({
+          id: input.id,
+          number: input.number,
+          name: input.name,
+          channelType: input.channelType,
+          standType: input.standType,
+        }))
+      : [],
+    outputs: Array.isArray(inputOutput.outputs)
+      ? inputOutput.outputs.map((output) => ({
+          id: output.id,
+          number: output.number,
+          name: output.name,
+          channelType: output.channelType,
+          monitorType: output.monitorType,
+        }))
+      : [],
   };
 }
 
@@ -205,13 +308,15 @@ function convertToTechnicalInfo(
 
   return {
     projectTitle: technicalInfo.projectTitle,
-    personnel: technicalInfo.personnel.map((person) => ({
-      id: person.id,
-      name: person.name,
-      role: person.role,
-      phone: person.phone,
-      email: person.email,
-    })),
+    personnel: Array.isArray(technicalInfo.personnel)
+      ? technicalInfo.personnel.map((person) => ({
+          id: person.id,
+          name: person.name,
+          role: person.role,
+          phone: person.phone,
+          email: person.email,
+        }))
+      : [],
     generalInfo: technicalInfo.generalInfo,
     houseSystem: technicalInfo.houseSystem,
     mixingDesk: technicalInfo.mixingDesk,
@@ -235,23 +340,49 @@ export const saveConfiguration = async (
       throw new Error("No items to save");
     }
 
+    console.log("Starting save configuration with items:", items.length);
+
     const sanitizedItems = sanitizeForFirestore(items);
+    console.log("Sanitized items:", sanitizedItems);
+
     const sanitizedInputOutput = sanitizeInputOutputForFirestore(inputOutput);
     const sanitizedTechnicalInfo =
       sanitizeTechnicalInfoForFirestore(technicalInfo);
 
     // Create a simple object with just primitive types
-    const configData = {
+    const configData: {
+      name: string;
+      userId: string;
+      items: StorableItem[];
+      inputOutput?: StorableInputOutput;
+      technicalInfo?: StorableTechnicalInfo;
+      createdAt: Timestamp;
+      lastAccessed: Timestamp;
+    } = {
       name: String(name),
       userId: String(userId),
       items: sanitizedItems,
-      inputOutput: sanitizedInputOutput,
-      technicalInfo: sanitizedTechnicalInfo,
       createdAt: Timestamp.now(),
       lastAccessed: Timestamp.now(), // Set initial lastAccessed to creation time
     };
 
-    console.log("Saving to Firestore:", JSON.stringify(configData, null, 2));
+    // Only add these fields if they're defined (not undefined)
+    if (sanitizedInputOutput) {
+      configData.inputOutput = sanitizedInputOutput;
+    }
+
+    if (sanitizedTechnicalInfo) {
+      configData.technicalInfo = sanitizedTechnicalInfo;
+    }
+
+    console.log(
+      "Final save data to be sent to Firestore:",
+      JSON.stringify(
+        configData,
+        (value) => (value === undefined ? "<<UNDEFINED>>" : value),
+        2
+      )
+    );
 
     // Option 1: Using addDoc
     try {
@@ -369,22 +500,46 @@ export const updateConfiguration = async (
       throw new Error("No items to save");
     }
 
+    console.log("Starting update configuration with items:", items.length);
+
     const configRef = doc(db, "stage-configs", configId);
     const sanitizedItems = sanitizeForFirestore(items);
+    console.log("Sanitized items:", sanitizedItems);
+
     const sanitizedInputOutput = sanitizeInputOutputForFirestore(inputOutput);
     const sanitizedTechnicalInfo =
       sanitizeTechnicalInfoForFirestore(technicalInfo);
 
-    await setDoc(
-      configRef,
-      {
-        items: sanitizedItems,
-        inputOutput: sanitizedInputOutput,
-        technicalInfo: sanitizedTechnicalInfo,
-        lastAccessed: Timestamp.now(),
-      },
-      { merge: true }
+    // Create an update object with only defined values
+    const updateData: {
+      items: StorableItem[];
+      inputOutput?: StorableInputOutput;
+      technicalInfo?: StorableTechnicalInfo;
+      lastAccessed: Timestamp;
+    } = {
+      items: sanitizedItems,
+      lastAccessed: Timestamp.now(),
+    };
+
+    // Only add these fields if they're defined (not undefined)
+    if (sanitizedInputOutput) {
+      updateData.inputOutput = sanitizedInputOutput;
+    }
+
+    if (sanitizedTechnicalInfo) {
+      updateData.technicalInfo = sanitizedTechnicalInfo;
+    }
+
+    console.log(
+      "Final update data to be sent to Firestore:",
+      JSON.stringify(
+        updateData,
+        (value) => (value === undefined ? "<<UNDEFINED>>" : value),
+        2
+      )
     );
+
+    await setDoc(configRef, updateData, { merge: true });
 
     console.log(`Configuration ${configId} updated successfully`);
   } catch (error) {

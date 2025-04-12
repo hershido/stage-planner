@@ -101,6 +101,11 @@ const StageItemComponent: React.FC<{
     size: { width: number; height: number; isFlipped?: boolean }
   ) => void;
   onDuplicate?: (id: string, position: { x: number; y: number }) => void;
+  onTextUpdate?: (
+    id: string,
+    text: string,
+    textFormatting?: { isBold?: boolean; isItalic?: boolean; fontSize?: number }
+  ) => void;
   allItems: StageItem[];
   selectedItemIds: string[];
 }> = ({
@@ -110,6 +115,7 @@ const StageItemComponent: React.FC<{
   onSelect,
   onResize,
   onDuplicate,
+  onTextUpdate,
   allItems,
   selectedItemIds,
 }) => {
@@ -118,7 +124,21 @@ const StageItemComponent: React.FC<{
     height: typeof item.height === "number" ? item.height : 100,
   });
   const [isResizing, setIsResizing] = useState(false);
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [textValue, setTextValue] = useState(
+    item.textContent || "Click to edit"
+  );
+  // Text formatting state
+  const [textFormatting, setTextFormatting] = useState({
+    isBold: item.textFormatting?.isBold || false,
+    isItalic: item.textFormatting?.isItalic || false,
+    fontSize: item.textFormatting?.fontSize || 14, // Default font size
+    textColor: item.textFormatting?.textColor || "#333333", // Default text color
+  });
   const isOptionKeyPressedRef = React.useRef(false);
+  const textInputRef = useRef<HTMLTextAreaElement>(null);
+  // Ref for the color picker input
+  const colorPickerRef = useRef<HTMLInputElement>(null);
 
   // Update local size when item size changes
   useEffect(() => {
@@ -127,6 +147,92 @@ const StageItemComponent: React.FC<{
       height: typeof item.height === "number" ? item.height : 100,
     });
   }, [item.width, item.height]);
+
+  // Update text value when item.textContent changes
+  useEffect(() => {
+    setTextValue(item.textContent || "Click to edit");
+  }, [item.textContent]);
+
+  // Update formatting when item.textFormatting changes
+  useEffect(() => {
+    if (item.textFormatting) {
+      setTextFormatting({
+        isBold: item.textFormatting.isBold || false,
+        isItalic: item.textFormatting.isItalic || false,
+        fontSize: item.textFormatting.fontSize || 14,
+        textColor: item.textFormatting.textColor || "#333333",
+      });
+    }
+  }, [item.textFormatting]);
+
+  // Resize container when text formatting changes
+  useEffect(() => {
+    if (item.name === "Text Label") {
+      // Only proceed if this is a text label
+      // Calculate a new size based on the font size
+      // This is a simple heuristic - actual text measurement would be more precise
+      const textLength = (textValue || "").length;
+      const fontSizeRatio = textFormatting.fontSize / 14; // Ratio compared to default font size
+
+      // Calculate new width and height based on font size
+      const calculatedWidth = Math.max(
+        100, // Minimum width
+        Math.min(
+          20 * Math.sqrt(textLength) * fontSizeRatio, // Width based on text length and font size
+          500 // Maximum width
+        )
+      );
+
+      // More aggressive height calculation that accounts for text wrapping
+      // Estimate number of lines based on text length and width
+      const estimatedCharsPerLine = Math.max(
+        10,
+        calculatedWidth / (textFormatting.fontSize * 0.6)
+      );
+      const estimatedLines = Math.max(
+        1,
+        Math.ceil(textLength / estimatedCharsPerLine)
+      );
+
+      const heightMultiplier = 2.5; // More generous height multiplier
+      const calculatedHeight = Math.max(
+        50, // Minimum height
+        textFormatting.fontSize * heightMultiplier * Math.max(1, estimatedLines) // Height based on font size and estimated lines
+      );
+
+      // Always update height when font size changes, only conditionally update width
+      const newWidth = Math.max(itemSize.width, calculatedWidth);
+      const newHeight = Math.max(itemSize.height, calculatedHeight);
+
+      // Only update if size has changed
+      if (newWidth !== itemSize.width || newHeight !== itemSize.height) {
+        // Update local state and parent state
+        setItemSize({ width: newWidth, height: newHeight });
+        onResize(item.id, {
+          width: newWidth,
+          height: newHeight,
+          isFlipped: item.isFlipped,
+        });
+      }
+    }
+  }, [
+    textFormatting.fontSize,
+    textValue,
+    item.name,
+    item.id,
+    itemSize.width,
+    itemSize.height,
+    onResize,
+    item.isFlipped,
+  ]);
+
+  // Focus text input when entering edit mode
+  useEffect(() => {
+    if (isEditingText && textInputRef.current) {
+      textInputRef.current.focus();
+      textInputRef.current.select();
+    }
+  }, [isEditingText]);
 
   const [{ isDragging }, drag] = useDrag<
     StageItemDragObject,
@@ -420,6 +526,338 @@ const StageItemComponent: React.FC<{
     }
   }, [onDuplicate]);
 
+  // Handle text click for edit mode
+  const handleTextClick = (e: React.MouseEvent) => {
+    if (
+      (item.name === "Text Label" || item.name === "Sticker Label") &&
+      isSelected
+    ) {
+      e.stopPropagation();
+      setIsEditingText(true);
+    }
+  };
+
+  // Handle text save
+  const handleTextSave = () => {
+    setIsEditingText(false);
+    if (onTextUpdate) {
+      onTextUpdate(item.id, textValue, textFormatting);
+    }
+  };
+
+  // Handle text input blur (save on blur)
+  const handleTextBlur = () => {
+    handleTextSave();
+  };
+
+  // Handle text input key press (save on Enter, cancel on Escape)
+  const handleTextKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleTextSave();
+    } else if (e.key === "Escape") {
+      setIsEditingText(false);
+      setTextValue(item.textContent || "Click to edit");
+      // Reset formatting to original
+      if (item.textFormatting) {
+        setTextFormatting({
+          isBold: item.textFormatting.isBold || false,
+          isItalic: item.textFormatting.isItalic || false,
+          fontSize: item.textFormatting.fontSize || 14,
+          textColor: item.textFormatting.textColor || "#333333",
+        });
+      }
+    }
+  };
+
+  // Handle formatting changes
+  const toggleBold = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newFormatting = {
+      ...textFormatting,
+      isBold: !textFormatting.isBold,
+    };
+    setTextFormatting(newFormatting);
+
+    // Immediately save formatting changes
+    if (onTextUpdate) {
+      onTextUpdate(item.id, textValue, newFormatting);
+    }
+  };
+
+  const toggleItalic = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newFormatting = {
+      ...textFormatting,
+      isItalic: !textFormatting.isItalic,
+    };
+    setTextFormatting(newFormatting);
+
+    // Immediately save formatting changes
+    if (onTextUpdate) {
+      onTextUpdate(item.id, textValue, newFormatting);
+    }
+  };
+
+  const increaseFontSize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newFormatting = {
+      ...textFormatting,
+      fontSize: Math.min(textFormatting.fontSize + 2, 36), // Maximum font size of 36px
+    };
+    setTextFormatting(newFormatting);
+
+    // Immediately save formatting changes
+    if (onTextUpdate) {
+      onTextUpdate(item.id, textValue, newFormatting);
+    }
+  };
+
+  const decreaseFontSize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newFormatting = {
+      ...textFormatting,
+      fontSize: Math.max(textFormatting.fontSize - 2, 8), // Minimum font size of 8px
+    };
+    setTextFormatting(newFormatting);
+
+    // Immediately save formatting changes
+    if (onTextUpdate) {
+      onTextUpdate(item.id, textValue, newFormatting);
+    }
+  };
+
+  // Open color picker
+  const handleColorButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (colorPickerRef.current) {
+      colorPickerRef.current.click();
+    }
+  };
+
+  // Handle color change
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    const newFormatting = {
+      ...textFormatting,
+      textColor: newColor,
+    };
+    setTextFormatting(newFormatting);
+
+    // Immediately save color changes
+    if (onTextUpdate) {
+      onTextUpdate(item.id, textValue, newFormatting);
+    }
+  };
+
+  // Render text formatting toolbar
+  const renderFormattingToolbar = () => {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: "calc(100% + 5px)",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          backgroundColor: "#f8f8f8",
+          border: "1px solid #ccc",
+          borderRadius: "4px",
+          padding: "4px 6px",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          zIndex: 4,
+          fontSize: "11px",
+          alignItems: "center",
+          justifyContent: "center",
+          whiteSpace: "nowrap",
+          minWidth: "fit-content",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Font style controls */}
+        <button
+          onClick={toggleBold}
+          style={{
+            fontWeight: "bold",
+            backgroundColor: textFormatting.isBold ? "#e0e0e0" : "transparent",
+            border: "1px solid #ccc",
+            borderRadius: "3px",
+            padding: "1px 5px",
+            marginRight: "6px",
+            cursor: "pointer",
+            color: "#000",
+          }}
+          title="Bold"
+        >
+          B
+        </button>
+        <button
+          onClick={toggleItalic}
+          style={{
+            fontStyle: "italic",
+            fontFamily: "Times New Roman, serif",
+            fontWeight: "bold",
+            backgroundColor: textFormatting.isItalic
+              ? "#e0e0e0"
+              : "transparent",
+            border: "1px solid #ccc",
+            borderRadius: "3px",
+            padding: "1px 5px",
+            marginRight: "6px",
+            cursor: "pointer",
+            color: "#000",
+          }}
+          title="Italic"
+        >
+          I
+        </button>
+
+        {/* Divider */}
+        <div
+          style={{
+            height: "16px",
+            width: "1px",
+            backgroundColor: "#ccc",
+            margin: "0 6px 0 0",
+          }}
+        />
+
+        {/* Font size controls */}
+        <button
+          onClick={decreaseFontSize}
+          style={{
+            border: "1px solid #999",
+            borderRadius: "3px",
+            padding: "1px 5px",
+            marginRight: "4px",
+            cursor: "pointer",
+            color: "#000",
+            fontWeight: "bold",
+            backgroundColor: "#ddd",
+            fontSize: "12px",
+            minWidth: "16px",
+          }}
+          title="Decrease font size"
+        >
+          -
+        </button>
+        <span
+          style={{
+            padding: "1px 5px",
+            color: "#000",
+            fontWeight: "bold",
+            minWidth: "16px",
+            textAlign: "center",
+          }}
+        >
+          {textFormatting.fontSize}
+        </span>
+        <button
+          onClick={increaseFontSize}
+          style={{
+            border: "1px solid #999",
+            borderRadius: "3px",
+            padding: "1px 5px",
+            marginLeft: "4px",
+            marginRight: "6px",
+            cursor: "pointer",
+            color: "#000",
+            fontWeight: "bold",
+            backgroundColor: "#ddd",
+            fontSize: "12px",
+            minWidth: "16px",
+          }}
+          title="Increase font size"
+        >
+          +
+        </button>
+
+        {/* Divider */}
+        <div
+          style={{
+            height: "16px",
+            width: "1px",
+            backgroundColor: "#ccc",
+            margin: "0 6px 0 0",
+          }}
+        />
+
+        {/* Color picker */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            height: "22px",
+          }}
+        >
+          <button
+            onClick={handleColorButtonClick}
+            style={{
+              width: "18px",
+              height: "18px",
+              border: "1px solid #999",
+              borderRadius: "3px",
+              margin: "0",
+              padding: 0,
+              cursor: "pointer",
+              backgroundColor: textFormatting.textColor,
+              display: "block",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            }}
+            title="Change text color"
+          />
+          <input
+            ref={colorPickerRef}
+            type="color"
+            value={textFormatting.textColor}
+            onChange={handleColorChange}
+            style={{
+              position: "absolute",
+              opacity: 0,
+              width: "0",
+              height: "0",
+              pointerEvents: "none",
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Render edit button for text items
+  const renderEditButton = () => {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsEditingText(true);
+        }}
+        style={{
+          position: "absolute",
+          top: "-25px",
+          left: "12px",
+          width: "18px",
+          height: "18px",
+          borderRadius: "50%",
+          border: "1px solid #27ae60",
+          backgroundColor: "#2ecc71",
+          color: "white",
+          fontSize: "12px",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          cursor: "pointer",
+          padding: 0,
+          zIndex: 3,
+        }}
+        title="Edit text"
+      >
+        ✎
+      </button>
+    );
+  };
+
   return (
     <div
       ref={drag as unknown as React.RefObject<HTMLDivElement>}
@@ -439,28 +877,140 @@ const StageItemComponent: React.FC<{
         zIndex: isSelected ? 2 : 1,
         boxShadow: isSelected ? "0 0 5px rgba(52, 152, 219, 0.5)" : "none",
         transition: isResizing ? "none" : "box-shadow 0.2s ease",
+        backgroundColor: "transparent",
+        borderRadius: item.name === "Text Label" ? "4px" : "0",
       }}
     >
-      <img
-        src={item.icon}
-        alt={item.name}
-        style={{
-          maxWidth: "100%",
-          maxHeight: "100%",
-          width: "auto",
-          height: "auto",
-          objectFit: "contain",
-          pointerEvents: "none",
-          background: "transparent",
-          transform: item.isFlipped ? "scaleX(-1)" : "none", // Flip the image horizontally if needed
-          display: "block",
-          margin: "auto",
-        }}
-      />
+      {item.name === "Text Label" ? (
+        isEditingText ? (
+          <textarea
+            ref={textInputRef}
+            value={textValue}
+            onChange={(e) => setTextValue(e.target.value)}
+            onBlur={handleTextBlur}
+            onKeyDown={handleTextKeyDown}
+            style={{
+              width: "90%",
+              height: "90%",
+              border: "none",
+              backgroundColor: "transparent",
+              resize: "none",
+              fontFamily: "Arial, sans-serif",
+              fontSize: `${textFormatting.fontSize}px`,
+              fontWeight: textFormatting.isBold ? "bold" : "normal",
+              fontStyle: textFormatting.isItalic ? "italic" : "normal",
+              textAlign: "center",
+              outline: "none",
+              padding: "4px",
+              color: textFormatting.textColor,
+            }}
+          />
+        ) : (
+          <div
+            onClick={handleTextClick}
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              padding: "4px",
+              userSelect: "none",
+              fontSize: `${textFormatting.fontSize}px`,
+              fontWeight: textFormatting.isBold ? "bold" : "normal",
+              fontStyle: textFormatting.isItalic ? "italic" : "normal",
+              fontFamily: "Arial, sans-serif",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              color: textFormatting.textColor,
+            }}
+          >
+            {textValue}
+          </div>
+        )
+      ) : item.name === "Sticker Label" ? (
+        isEditingText ? (
+          <textarea
+            ref={textInputRef}
+            value={textValue}
+            onChange={(e) => setTextValue(e.target.value)}
+            onBlur={handleTextBlur}
+            onKeyDown={handleTextKeyDown}
+            style={{
+              width: "90%",
+              height: "90%",
+              border: "none",
+              backgroundColor: "#232323",
+              resize: "none",
+              fontFamily: "Arial, sans-serif",
+              fontSize: `${textFormatting.fontSize}px`,
+              fontWeight: textFormatting.isBold ? "bold" : "normal",
+              fontStyle: textFormatting.isItalic ? "italic" : "normal",
+              textAlign: "center",
+              outline: "none",
+              padding: "4px",
+              color: "white",
+              borderRadius: "3px",
+            }}
+          />
+        ) : (
+          <div
+            onClick={handleTextClick}
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              padding: "4px",
+              userSelect: "none",
+              fontSize: `${textFormatting.fontSize}px`,
+              fontWeight: textFormatting.isBold ? "bold" : "normal",
+              fontStyle: textFormatting.isItalic ? "italic" : "normal",
+              fontFamily: "Arial, sans-serif",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              color: "white",
+              backgroundColor: "#232323",
+              borderRadius: "3px",
+              border: "1px solid #444",
+            }}
+          >
+            {textValue}
+          </div>
+        )
+      ) : (
+        <img
+          src={item.icon}
+          alt={item.name}
+          style={{
+            maxWidth: "100%",
+            maxHeight: "100%",
+            width: "auto",
+            height: "auto",
+            objectFit: "contain",
+            pointerEvents: "none",
+            background: "transparent",
+            transform: item.isFlipped ? "scaleX(-1)" : "none", // Flip the image horizontally if needed
+            display: "block",
+            margin: "auto",
+          }}
+        />
+      )}
       {isSelected && (
         <>
           {renderDeleteButton()}
-          {renderFlipButton()}
+          {item.name !== "Text Label" &&
+            item.name !== "Sticker Label" &&
+            renderFlipButton()}
+          {(item.name === "Text Label" || item.name === "Sticker Label") &&
+            !isEditingText &&
+            renderEditButton()}
+          {(item.name === "Text Label" || item.name === "Sticker Label") &&
+            isSelected &&
+            renderFormattingToolbar()}
           <ResizeHandle
             position="top-left"
             itemId={item.id}
@@ -615,6 +1165,14 @@ const Stage: React.FC<StageProps> = ({
       // Only handle key events when we have selected items
       if (selectedItemIds.length === 0) return;
 
+      // Check if we're currently editing text in a text label
+      const isEditingText =
+        document.activeElement &&
+        document.activeElement.tagName.toLowerCase() === "textarea";
+
+      // Skip deletion if we're editing text
+      if (isEditingText) return;
+
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault(); // Prevent browser navigation on backspace
         console.log("Deleting items with key:", selectedItemIds);
@@ -622,8 +1180,49 @@ const Stage: React.FC<StageProps> = ({
         selectedItemIds.forEach((id) => onDelete(id));
         setSelectedItemIds([]);
       }
+
+      // Handle arrow key nudging
+      const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+      if (arrowKeys.includes(e.key)) {
+        e.preventDefault(); // Prevent scrolling
+
+        // Determine nudge distance (1px normally, 10px with Shift)
+        const nudgeDistance = e.shiftKey ? 10 : 1;
+
+        // Calculate position delta based on arrow key
+        let deltaX = 0;
+        let deltaY = 0;
+
+        switch (e.key) {
+          case "ArrowLeft":
+            deltaX = -nudgeDistance;
+            break;
+          case "ArrowRight":
+            deltaX = nudgeDistance;
+            break;
+          case "ArrowUp":
+            deltaY = -nudgeDistance;
+            break;
+          case "ArrowDown":
+            deltaY = nudgeDistance;
+            break;
+        }
+
+        // Apply movement to all selected items
+        selectedItemIds.forEach((id) => {
+          const item = items.find((item) => item.id === id);
+          if (item) {
+            const newPosition = {
+              x: item.position.x + deltaX,
+              y: item.position.y + deltaY,
+            };
+            console.log(`Nudging item ${id} by (${deltaX}, ${deltaY})`);
+            onMove(id, newPosition);
+          }
+        });
+      }
     },
-    [selectedItemIds, onDelete]
+    [selectedItemIds, onDelete, items, onMove]
   );
 
   // Set up keyboard event listeners
@@ -1260,6 +1859,41 @@ const Stage: React.FC<StageProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handle text content updates
+  const handleTextUpdate = useCallback(
+    (
+      id: string,
+      text: string,
+      textFormatting?: {
+        isBold?: boolean;
+        isItalic?: boolean;
+        fontSize?: number;
+      }
+    ) => {
+      console.log(
+        `Updating text for item ${id} to: ${text} with formatting:`,
+        textFormatting
+      );
+      // Update the item's text content and formatting
+      const updatedItems = items.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            textContent: text,
+            textFormatting: textFormatting || item.textFormatting,
+          };
+        }
+        return item;
+      });
+
+      // Update global state with new items array
+      if (onImport) {
+        onImport(updatedItems);
+      }
+    },
+    [items, onImport]
+  );
+
   return (
     <div
       id="stage"
@@ -1330,6 +1964,7 @@ const Stage: React.FC<StageProps> = ({
           }}
           onResize={handleResize}
           onDuplicate={onDuplicate}
+          onTextUpdate={handleTextUpdate}
           allItems={items}
           selectedItemIds={selectedItemIds}
         />

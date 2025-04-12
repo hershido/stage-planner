@@ -70,20 +70,58 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
     }
   }, [technicalInfo, isOpen]);
 
-  const handleSave = () => {
-    const newTechnicalInfo: TechnicalInfo = {
-      projectTitle,
-      personnel,
-      generalInfo,
-      houseSystem,
-      mixingDesk,
-      monitoring,
-      backline,
-      soundCheck,
-    };
-    onSave(newTechnicalInfo);
-    onClose();
+  // Function to update the parent component with current data
+  const updateTechnicalInfo = () => {
+    // Only save if the data has actually changed
+    if (
+      !technicalInfo ||
+      projectTitle !== technicalInfo.projectTitle ||
+      generalInfo !== technicalInfo.generalInfo ||
+      houseSystem !== technicalInfo.houseSystem ||
+      mixingDesk !== technicalInfo.mixingDesk ||
+      monitoring !== technicalInfo.monitoring ||
+      backline !== technicalInfo.backline ||
+      soundCheck !== technicalInfo.soundCheck ||
+      // For personnel, check if the array has changed in length or content
+      personnel.length !== technicalInfo.personnel?.length ||
+      JSON.stringify(personnel) !== JSON.stringify(technicalInfo.personnel)
+    ) {
+      const newTechnicalInfo: TechnicalInfo = {
+        projectTitle,
+        personnel,
+        generalInfo,
+        houseSystem,
+        mixingDesk,
+        monitoring,
+        backline,
+        soundCheck,
+      };
+
+      onSave(newTechnicalInfo);
+    }
   };
+
+  // Update data when any field changes - using a timeout to avoid too frequent updates
+  useEffect(() => {
+    if (isOpen) {
+      // Use a small delay to avoid triggering on initial form load
+      const timeoutId = setTimeout(() => {
+        updateTechnicalInfo();
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    projectTitle,
+    personnel,
+    generalInfo,
+    houseSystem,
+    mixingDesk,
+    monitoring,
+    backline,
+    soundCheck,
+    isOpen,
+  ]);
 
   const addPerson = () => {
     if (personName && personRole) {
@@ -542,37 +580,6 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
             }}
             placeholder="Enter sound check schedule"
           />
-        </div>
-
-        <div
-          style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}
-        >
-          <button
-            onClick={onClose}
-            style={{
-              padding: "10px 15px",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              color: "white",
-              border: "1px solid rgba(255, 255, 255, 0.3)",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            style={{
-              padding: "10px 15px",
-              backgroundColor: "rgba(52, 152, 219, 0.8)",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Save Information
-          </button>
         </div>
       </div>
     </div>

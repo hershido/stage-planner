@@ -32,8 +32,6 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
   inputOutput,
   technicalInfo,
   onLoad,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  currentConfigName,
   currentConfigId,
   hasUnsavedChanges,
   onSave,
@@ -280,7 +278,7 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
               marginBottom: "15px",
             }}
           >
-            <h2 style={{ margin: 0 }}>
+            <h2 style={{ margin: 0, color: "#333" }}>
               {mode === "save" ? "Save Configuration" : "Load Configuration"}
             </h2>
             <button
@@ -290,6 +288,7 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
                 border: "none",
                 fontSize: "20px",
                 cursor: "pointer",
+                color: "#666",
               }}
             >
               ×

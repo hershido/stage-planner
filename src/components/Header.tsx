@@ -19,6 +19,7 @@ interface HeaderProps {
   hasUnsavedChanges: boolean;
   onSave: () => Promise<void>;
   onSaveAs: () => void;
+  onNewConfig: () => void;
   handleExportPDF: () => void;
   handleUndo: () => void;
   handleRedo: () => void;
@@ -38,6 +39,7 @@ const Header: React.FC<HeaderProps> = ({
   hasUnsavedChanges,
   onSave,
   onSaveAs,
+  onNewConfig,
   handleExportPDF,
   handleUndo,
   handleRedo,
@@ -59,6 +61,13 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Control buttons */}
       <div className="control-buttons">
+        <button
+          onClick={onNewConfig}
+          title="New Configuration"
+          className="header-button"
+        >
+          <span style={{ fontFamily: "sans-serif" }}>&#10133;</span>
+        </button>
         <ConfigManager
           items={items}
           inputOutput={inputOutput}

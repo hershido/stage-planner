@@ -23,6 +23,11 @@ import monoDIBox from "../assets/icons/monoDIBox.svg";
 import stereoDIBox from "../assets/icons/stereoDIBox.svg";
 import iemMonitor from "../assets/icons/iemMonitor.svg";
 import wedgeMonitor from "../assets/icons/wedgeMonitor.svg";
+import acousticGuitarOnStand from "../assets/icons/acousticGuitarOnStand.svg";
+import laptopWithAudioInterfaceOnStand from "../assets/icons/laptopWithAudioInterfaceOnStand.svg";
+import drummerMixer from "../assets/icons/drummerMixer.svg";
+import textLabel from "../assets/icons/textLabel.svg";
+import stickerLabel from "../assets/icons/stickerLabel.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -52,7 +57,7 @@ const DraggableItemComponent: React.FC<DraggableItemProps> = ({
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-    end: (item, monitor) => {
+    end: (_item, monitor) => {
       const dropResult = monitor.getDropResult();
       console.log("Sidebar drag ended:", dropResult);
     },
@@ -332,6 +337,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 80,
       defaultHeight: 200,
     },
+    {
+      type: "instruments",
+      name: "Acoustic Guitar On Stand",
+      icon: acousticGuitarOnStand,
+      defaultWidth: 50,
+      defaultHeight: 120,
+    },
 
     // Equipment - Speakers
     {
@@ -396,6 +408,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 150,
       defaultHeight: 100,
     },
+    {
+      type: "equipment",
+      subtype: "monitors",
+      name: "Drummer Mixer",
+      icon: drummerMixer,
+      defaultWidth: 120,
+      defaultHeight: 80,
+    },
 
     // Equipment - Stage Gear
     {
@@ -429,6 +449,30 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       icon: stereoDIBox,
       defaultWidth: 100,
       defaultHeight: 60,
+    },
+    {
+      type: "equipment",
+      subtype: "stageGear",
+      name: "Laptop with Audio Interface",
+      icon: laptopWithAudioInterfaceOnStand,
+      defaultWidth: 90,
+      defaultHeight: 120,
+    },
+
+    // Labels
+    {
+      type: "labels",
+      name: "Text Label",
+      icon: textLabel,
+      defaultWidth: 120,
+      defaultHeight: 40,
+    },
+    {
+      type: "labels",
+      name: "Sticker Label",
+      icon: stickerLabel,
+      defaultWidth: 150,
+      defaultHeight: 50,
     },
 
     // Musicians - Guitarists
@@ -549,6 +593,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     (item) => item.subtype === "monitors"
   );
 
+  // Labels items
+  const labelItems = filteredItems.filter((item) => item.type === "labels");
+
   const musicianItems = filteredItems.filter(
     (item) => item.type === "musicians"
   );
@@ -606,6 +653,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             bassAmpItems={bassAmpItems}
             stageGearItems={stageGearItems}
             monitorItems={monitorItems}
+            onItemClick={onItemClick}
+            isSearching={searchTerm.trim() !== ""}
+          />
+        )}
+
+        {labelItems.length > 0 && (
+          <Category
+            title="Labels"
+            items={labelItems}
             onItemClick={onItemClick}
             isSearching={searchTerm.trim() !== ""}
           />
