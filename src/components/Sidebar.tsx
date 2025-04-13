@@ -28,6 +28,7 @@ import laptopWithAudioInterfaceOnStand from "../assets/icons/laptopWithAudioInte
 import drummerMixer from "../assets/icons/drummerMixer.svg";
 import textLabel from "../assets/icons/textLabel.svg";
 import stickerLabel from "../assets/icons/stickerLabel.svg";
+import appLogo from "../assets/icons/appLogo.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -75,14 +76,14 @@ const DraggableItemComponent: React.FC<DraggableItemProps> = ({
       style={{
         opacity: isDragging ? 0.5 : 1,
         cursor: "pointer",
-        padding: "8px",
-        margin: "4px",
+        padding: "10px 12px",
+        margin: "5px 0",
         border: "1px solid #555",
-        borderRadius: "4px",
+        borderRadius: "6px",
         display: "flex",
         alignItems: "center",
-        gap: "8px",
-        transition: "background-color 0.2s ease",
+        gap: "12px",
+        transition: "all 0.2s ease",
         backgroundColor: "#ffffff",
         color: "#333333",
         fontWeight: 500,
@@ -93,9 +94,9 @@ const DraggableItemComponent: React.FC<DraggableItemProps> = ({
       <img
         src={item.icon}
         alt={item.name}
-        style={{ width: "24px", height: "24px" }}
+        style={{ width: "32px", height: "32px" }}
       />
-      <span>{item.name}</span>
+      <span style={{ fontSize: "15px" }}>{item.name}</span>
     </div>
   );
 };
@@ -142,10 +143,10 @@ const Category: React.FC<CategoryProps> = ({
   const headerStyle = {
     color: "#ffffff",
     backgroundColor: level === "main" ? "#444444" : "#555555",
-    padding: level === "main" ? "8px 12px" : "6px 12px 6px 24px",
-    borderRadius: "4px",
-    marginBottom: isExpanded ? "8px" : "0",
-    marginLeft: level === "sub" ? "12px" : "0",
+    padding: level === "main" ? "10px 14px" : "8px 14px 8px 28px",
+    borderRadius: "6px",
+    marginBottom: isExpanded ? "10px" : "0",
+    marginLeft: level === "sub" ? "16px" : "0",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -155,9 +156,9 @@ const Category: React.FC<CategoryProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: level === "main" ? "16px" : "12px" }}>
+    <div style={{ marginBottom: level === "main" ? "20px" : "15px" }}>
       <div onClick={handleToggle} style={headerStyle}>
-        <h3 style={{ margin: 0, fontSize: level === "sub" ? "15px" : "16px" }}>
+        <h3 style={{ margin: 0, fontSize: level === "sub" ? "15px" : "17px" }}>
           {title}
         </h3>
         <span style={{ fontSize: level === "sub" ? "16px" : "18px" }}>
@@ -168,10 +169,11 @@ const Category: React.FC<CategoryProps> = ({
       {isExpanded && (
         <div
           style={{
-            maxHeight: "250px",
+            maxHeight: "300px",
             overflowY: "auto",
             scrollbarWidth: "thin",
-            marginLeft: level === "sub" ? "12px" : "0",
+            marginLeft: level === "sub" ? "16px" : "0",
+            paddingRight: "8px",
           }}
         >
           {items.map((item) => (
@@ -603,7 +605,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   return (
     <div
       style={{
-        width: "200px",
+        width: "330px",
         padding: "16px",
         borderRight: "1px solid #555",
         backgroundColor: "#333333",
@@ -613,12 +615,25 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         flexDirection: "column",
       }}
     >
-      <h2 style={{ marginBottom: "16px", color: "#ffffff", fontSize: "20px" }}>
+      <div className="sidebar-app-logo">
+        <img src={appLogo} alt="Stage Planner" />
+      </div>
+
+      <h2
+        style={{
+          marginBottom: "20px",
+          color: "#ffffff",
+          fontSize: "22px",
+          fontWeight: "500",
+          textAlign: "center",
+          letterSpacing: "0.5px",
+        }}
+      >
         Items
       </h2>
 
       {/* Search input */}
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "20px" }}>
         <input
           type="text"
           placeholder="Search items..."
@@ -626,12 +641,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             width: "100%",
-            padding: "8px",
-            borderRadius: "4px",
+            padding: "12px 16px",
+            borderRadius: "6px",
             border: "1px solid #555",
             backgroundColor: "#444444",
             color: "white",
             outline: "none",
+            fontSize: "15px",
           }}
         />
       </div>
