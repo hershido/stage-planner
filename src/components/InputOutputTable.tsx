@@ -188,8 +188,28 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
   // Initialize with default values or from props
   useEffect(() => {
     if (inputOutput) {
-      setInputs(inputOutput.inputs);
-      setOutputs(inputOutput.outputs);
+      // Ensure inputs and outputs are arrays
+      const safeInputs = Array.isArray(inputOutput.inputs)
+        ? inputOutput.inputs
+        : [];
+      const safeOutputs = Array.isArray(inputOutput.outputs)
+        ? inputOutput.outputs
+        : [];
+
+      // Set the inputs/outputs with safety checks
+      setInputs(
+        safeInputs.map((input) => ({
+          ...input,
+          number: input.number?.toString() || "1",
+        }))
+      );
+
+      setOutputs(
+        safeOutputs.map((output) => ({
+          ...output,
+          number: output.number?.toString() || "1",
+        }))
+      );
     } else if (isInitialRender) {
       // Initialize with one empty row for each section only on initial render
       setInputs([
@@ -237,9 +257,16 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
     value: string | number
   ) => {
     setInputs((prev) =>
-      prev.map((input) =>
-        input.id === id ? { ...input, [field]: value } : input
-      )
+      prev.map((input) => {
+        if (input.id === id) {
+          // Ensure number field is always a string
+          if (field === "number") {
+            return { ...input, [field]: String(value) };
+          }
+          return { ...input, [field]: value };
+        }
+        return input;
+      })
     );
   };
 
@@ -250,9 +277,16 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
     value: string | number
   ) => {
     setOutputs((prev) =>
-      prev.map((output) =>
-        output.id === id ? { ...output, [field]: value } : output
-      )
+      prev.map((output) => {
+        if (output.id === id) {
+          // Ensure number field is always a string
+          if (field === "number") {
+            return { ...output, [field]: String(value) };
+          }
+          return { ...output, [field]: value };
+        }
+        return output;
+      })
     );
   };
 
@@ -260,7 +294,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
   const addInputRow = () => {
     const newInput: InputRow = {
       id: uuidv4(),
-      number: (inputs.length + 1).toString(),
+      number: String(inputs.length + 1),
       name: "",
       channelType: "",
       standType: "",
@@ -272,7 +306,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
   const addOutputRow = () => {
     const newOutput: OutputRow = {
       id: uuidv4(),
-      number: (outputs.length + 1).toString(),
+      number: String(outputs.length + 1),
       name: "",
       channelType: "",
       monitorType: "",
@@ -287,7 +321,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
       // Renumber the inputs
       return newInputs.map((input, index) => ({
         ...input,
-        number: (index + 1).toString(),
+        number: String(index + 1),
       }));
     });
   };
@@ -299,7 +333,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
       // Renumber the outputs
       return newOutputs.map((output, index) => ({
         ...output,
-        number: (index + 1).toString(),
+        number: String(index + 1),
       }));
     });
   };

@@ -44,6 +44,7 @@ interface StorableInputRow {
   name: string;
   channelType: string;
   standType: string;
+  originalNumber?: string; // Optional field for non-numeric values
 }
 
 interface StorableOutputRow {
@@ -52,6 +53,7 @@ interface StorableOutputRow {
   name: string;
   channelType: string;
   monitorType: string;
+  originalNumber?: string; // Optional field for non-numeric values
 }
 
 interface StorableInputOutput {
@@ -176,13 +178,23 @@ function sanitizeInputOutputForFirestore(
   // Process inputs if they exist
   if (Array.isArray(inputOutput.inputs)) {
     sanitized.inputs = inputOutput.inputs.map((input) => {
+      // Store the number as a string in a separate field if it's not a valid number
+      const numValue = Number(input.number);
+      const isValidNumber = !isNaN(numValue);
+
       const sanitizedInput: StorableInputRow = {
         id: String(input.id || ""),
-        number: Number(input.number || 0),
+        number: isValidNumber ? numValue : 0, // Use 0 as default for sorting
         name: String(input.name || ""),
         channelType: String(input.channelType || ""),
         standType: String(input.standType || ""),
       };
+
+      // Add originalNumber as a properly typed field
+      if (!isValidNumber) {
+        sanitizedInput.originalNumber = String(input.number || "");
+      }
+
       return sanitizedInput;
     });
   }
@@ -190,13 +202,23 @@ function sanitizeInputOutputForFirestore(
   // Process outputs if they exist
   if (Array.isArray(inputOutput.outputs)) {
     sanitized.outputs = inputOutput.outputs.map((output) => {
+      // Store the number as a string in a separate field if it's not a valid number
+      const numValue = Number(output.number);
+      const isValidNumber = !isNaN(numValue);
+
       const sanitizedOutput: StorableOutputRow = {
         id: String(output.id || ""),
-        number: Number(output.number || 0),
+        number: isValidNumber ? numValue : 0, // Use 0 as default for sorting
         name: String(output.name || ""),
         channelType: String(output.channelType || ""),
         monitorType: String(output.monitorType || ""),
       };
+
+      // Add originalNumber as a properly typed field
+      if (!isValidNumber) {
+        sanitizedOutput.originalNumber = String(output.number || "");
+      }
+
       return sanitizedOutput;
     });
   }
@@ -280,22 +302,34 @@ function convertToStageInputOutput(
 
   return {
     inputs: Array.isArray(inputOutput.inputs)
-      ? inputOutput.inputs.map((input) => ({
-          id: input.id,
-          number: input.number,
-          name: input.name,
-          channelType: input.channelType,
-          standType: input.standType,
-        }))
+      ? inputOutput.inputs.map((input) => {
+          return {
+            id: input.id,
+            // Use originalNumber if available, otherwise convert number to string
+            number:
+              input.originalNumber !== undefined
+                ? input.originalNumber
+                : String(input.number),
+            name: input.name,
+            channelType: input.channelType,
+            standType: input.standType,
+          };
+        })
       : [],
     outputs: Array.isArray(inputOutput.outputs)
-      ? inputOutput.outputs.map((output) => ({
-          id: output.id,
-          number: output.number,
-          name: output.name,
-          channelType: output.channelType,
-          monitorType: output.monitorType,
-        }))
+      ? inputOutput.outputs.map((output) => {
+          return {
+            id: output.id,
+            // Use originalNumber if available, otherwise convert number to string
+            number:
+              output.originalNumber !== undefined
+                ? output.originalNumber
+                : String(output.number),
+            name: output.name,
+            channelType: output.channelType,
+            monitorType: output.monitorType,
+          };
+        })
       : [],
   };
 }
