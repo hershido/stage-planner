@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDrag } from "react-dnd";
 import { DraggableItem } from "../types/stage";
 import guitarIcon from "../assets/icons/guitar.svg";
@@ -76,27 +76,50 @@ const DraggableItemComponent: React.FC<DraggableItemProps> = ({
       style={{
         opacity: isDragging ? 0.5 : 1,
         cursor: "pointer",
-        padding: "10px 12px",
-        margin: "5px 0",
+        padding: "8px 5px",
         border: "1px solid #555",
         borderRadius: "6px",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        gap: "12px",
+        justifyContent: "center",
         transition: "all 0.2s ease",
         backgroundColor: "#ffffff",
         color: "#333333",
         fontWeight: 500,
         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        width: "calc(33.333% - 8px)",
+        margin: "4px",
+        height: "90px",
       }}
       className="sidebar-item"
     >
       <img
         src={item.icon}
         alt={item.name}
-        style={{ width: "32px", height: "32px" }}
+        style={{
+          width: "32px",
+          height: "32px",
+          marginBottom: "6px",
+          objectFit: "contain",
+        }}
       />
-      <span style={{ fontSize: "15px" }}>{item.name}</span>
+      <span
+        style={{
+          fontSize: "11px",
+          textAlign: "center",
+          lineHeight: "1.2",
+          display: "-webkit-box",
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+          maxWidth: "100%",
+          padding: "0 2px",
+          wordBreak: "break-word",
+        }}
+      >
+        {item.name}
+      </span>
     </div>
   );
 };
@@ -107,6 +130,7 @@ interface CategoryProps {
   onItemClick: (item: DraggableItem) => void;
   level?: "main" | "sub";
   isSearching?: boolean;
+  icon?: string;
 }
 
 const Category: React.FC<CategoryProps> = ({
@@ -115,11 +139,17 @@ const Category: React.FC<CategoryProps> = ({
   onItemClick,
   level = "main",
   isSearching = false,
+  icon,
 }) => {
   // Remember the user's manually set state
   const [userExpandedState, setUserExpandedState] = useState(false);
   // Combined state of search-triggered and user-triggered expansion
   const [isExpanded, setIsExpanded] = useState(isSearching && items.length > 0);
+  // Track scroll states
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+  // Reference to scrollable container
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Update expansion state when search status changes
   useEffect(() => {
@@ -132,6 +162,34 @@ const Category: React.FC<CategoryProps> = ({
     }
   }, [isSearching, items.length, userExpandedState]);
 
+  // Check scroll position to determine if fades should be shown
+  useEffect(() => {
+    if (isExpanded && scrollContainerRef.current) {
+      const checkScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } =
+          scrollContainerRef.current!;
+        setCanScrollUp(scrollTop > 0);
+        setCanScrollDown(scrollTop < scrollHeight - clientHeight - 1);
+      };
+
+      // Initial check
+      checkScroll();
+
+      // Add scroll event listener
+      scrollContainerRef.current.addEventListener("scroll", checkScroll);
+
+      // Cleanup
+      return () => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.removeEventListener("scroll", checkScroll);
+        }
+      };
+    }
+  }, [isExpanded, items]);
+
+  // Check if enough items to show fades
+  const shouldShowFades = items.length >= 9;
+
   // Handle manual toggle
   const handleToggle = () => {
     const newState = !isExpanded;
@@ -139,50 +197,46 @@ const Category: React.FC<CategoryProps> = ({
     setIsExpanded(newState);
   };
 
-  // Different styles based on level
-  const headerStyle = {
-    color: "#ffffff",
-    backgroundColor: level === "main" ? "#444444" : "#555555",
-    padding: level === "main" ? "10px 14px" : "8px 14px 8px 28px",
-    borderRadius: "6px",
-    marginBottom: isExpanded ? "10px" : "0",
-    marginLeft: level === "sub" ? "16px" : "0",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    cursor: "pointer",
-    userSelect: "none" as const,
-    fontSize: level === "sub" ? "14px" : undefined,
-  };
-
   return (
-    <div style={{ marginBottom: level === "main" ? "20px" : "15px" }}>
-      <div onClick={handleToggle} style={headerStyle}>
-        <h3 style={{ margin: 0, fontSize: level === "sub" ? "15px" : "17px" }}>
-          {title}
-        </h3>
-        <span style={{ fontSize: level === "sub" ? "16px" : "18px" }}>
-          {isExpanded ? "▼" : "►"}
-        </span>
+    <div style={{ marginBottom: level === "main" ? "16px" : "12px" }}>
+      <div
+        onClick={handleToggle}
+        className={`sidebar-category-header ${
+          level === "sub" ? "sidebar-subcategory-header" : ""
+        }`}
+      >
+        <div className="header-content">
+          {icon && <img src={icon} alt="" className="category-icon" />}
+          <h3>{title}</h3>
+        </div>
+        <div
+          className={`toggle-icon ${isExpanded ? "expanded" : "collapsed"}`}
+        ></div>
       </div>
 
       {isExpanded && (
-        <div
-          style={{
-            maxHeight: "300px",
-            overflowY: "auto",
-            scrollbarWidth: "thin",
-            marginLeft: level === "sub" ? "16px" : "0",
-            paddingRight: "8px",
-          }}
-        >
-          {items.map((item) => (
-            <DraggableItemComponent
-              key={item.name}
-              item={item}
-              onClick={onItemClick}
-            />
-          ))}
+        <div className="scroll-container-wrapper">
+          <div
+            className={`fade-top ${
+              shouldShowFades && canScrollUp ? "visible" : ""
+            }`}
+          ></div>
+          <div ref={scrollContainerRef} className="scrollable-container">
+            <div className="sidebar-grid-container">
+              {items.map((item) => (
+                <DraggableItemComponent
+                  key={item.name}
+                  item={item}
+                  onClick={onItemClick}
+                />
+              ))}
+            </div>
+          </div>
+          <div
+            className={`fade-bottom ${
+              shouldShowFades && canScrollDown ? "visible" : ""
+            }`}
+          ></div>
         </div>
       )}
     </div>
@@ -198,6 +252,7 @@ const EquipmentCategory: React.FC<{
   monitorItems: DraggableItem[];
   onItemClick: (item: DraggableItem) => void;
   isSearching: boolean;
+  icon?: string;
 }> = ({
   speakerItems,
   guitarAmpItems,
@@ -206,6 +261,7 @@ const EquipmentCategory: React.FC<{
   monitorItems,
   onItemClick,
   isSearching,
+  icon,
 }) => {
   // Initialize as expanded if searching and there are matching items
   const [isExpanded, setIsExpanded] = useState(
@@ -242,35 +298,19 @@ const EquipmentCategory: React.FC<{
     <div style={{ marginBottom: "16px" }}>
       <div
         onClick={() => setIsExpanded(!isExpanded)}
-        style={{
-          color: "#ffffff",
-          backgroundColor: "#444444",
-          padding: "8px 12px",
-          borderRadius: "4px",
-          marginBottom: isExpanded ? "8px" : "0",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          cursor: "pointer",
-          userSelect: "none" as const,
-        }}
+        className="sidebar-category-header"
       >
-        <h3 style={{ margin: 0 }}>Equipment</h3>
-        <span style={{ fontSize: "18px" }}>{isExpanded ? "▼" : "►"}</span>
+        <div className="header-content">
+          {icon && <img src={icon} alt="" className="category-icon" />}
+          <h3>Equipment</h3>
+        </div>
+        <div
+          className={`toggle-icon ${isExpanded ? "expanded" : "collapsed"}`}
+        ></div>
       </div>
 
       {isExpanded && (
         <>
-          {speakerItems.length > 0 && (
-            <Category
-              title="Speakers"
-              items={speakerItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-            />
-          )}
-
           {guitarAmpItems.length > 0 && (
             <Category
               title="Guitar Amps"
@@ -278,6 +318,7 @@ const EquipmentCategory: React.FC<{
               onItemClick={onItemClick}
               level="sub"
               isSearching={isSearching}
+              icon={guitarAmpMarshallStack}
             />
           )}
 
@@ -288,6 +329,7 @@ const EquipmentCategory: React.FC<{
               onItemClick={onItemClick}
               level="sub"
               isSearching={isSearching}
+              icon={bassAmpSvtStack}
             />
           )}
 
@@ -298,6 +340,7 @@ const EquipmentCategory: React.FC<{
               onItemClick={onItemClick}
               level="sub"
               isSearching={isSearching}
+              icon={iemMonitor}
             />
           )}
 
@@ -308,6 +351,7 @@ const EquipmentCategory: React.FC<{
               onItemClick={onItemClick}
               level="sub"
               isSearching={isSearching}
+              icon={electricDropTwoSockets}
             />
           )}
         </>
@@ -606,13 +650,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     <div
       style={{
         width: "330px",
-        padding: "16px",
-        borderRight: "1px solid #555",
-        backgroundColor: "#333333",
+        padding: "14px",
+        borderRight: "1px solid #222",
+        backgroundColor: "#272727",
         color: "#ffffff",
         height: "100%",
         display: "flex",
         flexDirection: "column",
+        fontFamily: "'Roboto Mono', monospace",
       }}
     >
       <div className="sidebar-app-logo">
@@ -621,12 +666,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
 
       <h2
         style={{
-          marginBottom: "20px",
+          marginBottom: "16px",
           color: "#ffffff",
-          fontSize: "22px",
-          fontWeight: "500",
+          fontSize: "18px",
+          fontWeight: "400",
           textAlign: "center",
-          letterSpacing: "0.5px",
+          letterSpacing: "1px",
+          textTransform: "uppercase",
+          fontFamily: "'Roboto Mono', monospace",
         }}
       >
         Items
@@ -641,13 +688,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             width: "100%",
-            padding: "12px 16px",
-            borderRadius: "6px",
+            padding: "10px 12px",
+            borderRadius: "3px",
             border: "1px solid #555",
-            backgroundColor: "#444444",
+            backgroundColor: "#2a2a2a",
             color: "white",
             outline: "none",
-            fontSize: "15px",
+            fontSize: "14px",
+            fontFamily: "'Roboto Mono', monospace",
           }}
         />
       </div>
@@ -659,6 +707,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             items={instrumentItems}
             onItemClick={onItemClick}
             isSearching={searchTerm.trim() !== ""}
+            icon={acousticGuitarOnStand}
           />
         )}
 
@@ -671,6 +720,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             monitorItems={monitorItems}
             onItemClick={onItemClick}
             isSearching={searchTerm.trim() !== ""}
+            icon={drummerMixer}
           />
         )}
 
@@ -680,6 +730,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             items={labelItems}
             onItemClick={onItemClick}
             isSearching={searchTerm.trim() !== ""}
+            icon={textLabel}
           />
         )}
 
@@ -689,13 +740,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             items={musicianItems}
             onItemClick={onItemClick}
             isSearching={searchTerm.trim() !== ""}
+            icon={vocalistMale}
           />
         )}
 
         {filteredItems.length === 0 && (
           <div
-            style={{ textAlign: "center", padding: "20px 0", color: "#999" }}
+            style={{
+              textAlign: "center",
+              padding: "30px 0",
+              color: "#aaa",
+              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              borderRadius: "6px",
+              margin: "10px 0",
+            }}
           >
+            <div style={{ fontSize: "20px", marginBottom: "8px" }}>🔍</div>
             No items found
           </div>
         )}

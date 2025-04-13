@@ -57,12 +57,15 @@ body {
 
 /* App logo styles */
 .sidebar-app-logo {
-  background-color: #333333;
   padding: 10px 0;
-  border-bottom: 1px solid #555;
+  border-bottom: 1px solid #444;
   margin-bottom: 15px;
   display: flex;
   justify-content: center;
+  margin-top: 5px;
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
 }
 
 .sidebar-app-logo img {
@@ -295,6 +298,7 @@ table tr.spacer-row:hover .row-insert-container,
   height: 100vh;
   width: 100%;
   overflow: hidden;
+  background-color: #1f1f1f;
 }
 
 .sidebar-container {
@@ -303,14 +307,16 @@ table tr.spacer-row:hover .row-insert-container,
   height: 100%;
   width: 330px;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 100;
   background-color: #2d2d2d;
+  padding: 0 18px;
 }
 
 .content-container {
   grid-area: content;
   overflow-y: auto;
-  padding: 25px 16px 16px 16px;
+  padding: 10px 16px 16px 16px;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -320,36 +326,47 @@ table tr.spacer-row:hover .row-insert-container,
 /* Update the header styling */
 .app-header {
   grid-area: header;
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 70px;
+  position: relative;
+  height: 60px;
   background-color: #2d2d2d;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 25px;
   z-index: 100;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  margin: 12px 10px 0 10px;
+  border-radius: 8px;
+}
+
+/* Style the logo in the header */
+.app-header img.logo {
+  height: 32px;
+  padding: 0;
+  margin-right: 12px;
 }
 
 .config-title {
   flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 .config-title h1 {
   color: white;
   font-size: 20px;
   margin: 0;
-  font-weight: 500;
+  font-weight: 400;
+  font-family: "Roboto Mono", monospace;
+  letter-spacing: 0.5px;
+  padding-left: 4px;
 }
 
 .control-buttons {
   display: flex;
-  gap: 5px;
+  gap: 8px;
   align-items: center;
-  margin-right: 20px;
+  margin-right: 15px;
 }
 
 .user-menu-container {
@@ -387,7 +404,7 @@ table tr.spacer-row:hover .row-insert-container,
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  margin-right: 10px;
+  margin-right: 0;
   transition: all 0.2s ease;
 }
 
@@ -537,12 +554,228 @@ table tr.spacer-row:hover .row-insert-container,
 
 /* Improve sidebar items appearance */
 .sidebar-item {
-  transition: transform 0.2s ease, box-shadow 0.2s ease,
-    background-color 0.2s ease;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  background-color: #ffffff;
+  border: 1px solid #444;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 5;
+  width: calc(33.333% - 8px) !important;
+  height: 90px !important;
+  box-sizing: border-box;
 }
 
 .sidebar-item:hover {
   background-color: #f5f5f5 !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15) !important;
+  border-color: #666;
+}
+
+.sidebar-item span {
+  font-family: "Roboto Mono", monospace;
+  font-size: 10px !important;
+  font-weight: 400;
+  line-height: 1.3;
+  width: 100%;
+  height: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding: 0 2px;
+}
+
+.sidebar-item img {
+  transition: transform 0.2s ease;
+  opacity: 0.9;
+}
+
+/* Scrollable grid containers in sidebar */
+.sidebar-grid-container {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -4px;
+  padding-bottom: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Override older responsive styles */
+@media (max-width: 400px) {
+  .sidebar-item {
+    width: calc(33.333% - 8px) !important;
+    height: 90px !important;
+  }
+}
+
+/* Add technical font for the sidebar */
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500&display=swap");
+
+/* Category header styles */
+.sidebar-category-header {
+  color: #ffffff;
+  background-color: #333333;
+  padding: 8px 12px;
+  border-radius: 3px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  border-left: 2px solid #666;
+  font-family: "Roboto Mono", monospace;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-category-header:hover {
+  background-color: #3a3a3a;
+  border-left-color: #888;
+}
+
+.sidebar-category-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.sidebar-category-header .toggle-icon {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-subcategory-header {
+  background-color: #2a2a2a;
+  border-left: 2px solid #555;
+  padding: 6px 12px 6px 18px;
+  margin-left: 8px;
+  margin-bottom: 12px;
+}
+
+.sidebar-subcategory-header h3 {
+  font-size: 13px;
+}
+
+.sidebar-category-header .toggle-icon.expanded::before {
+  content: "—";
+}
+
+.sidebar-category-header .toggle-icon.collapsed::before {
+  content: "+";
+}
+
+/* Scrollable container with fade effect */
+.scroll-container-wrapper {
+  position: relative;
+  max-height: 300px;
+  margin-left: 0;
+  border-radius: 3px;
+  overflow: visible;
+  padding-top: 4px;
+  margin-top: -4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scrollable-container {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  padding-right: 8px;
+  position: relative;
+  z-index: 1;
+  padding-top: 2px;
+  width: 100%;
+}
+
+/* Fade at top */
+.fade-top {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 8px;
+  height: 20px;
+  background: linear-gradient(
+    to bottom,
+    rgba(39, 39, 39, 1) 0%,
+    rgba(39, 39, 39, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+
+/* Fade at bottom */
+.fade-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 8px;
+  height: 20px;
+  background: linear-gradient(
+    to top,
+    rgba(39, 39, 39, 1) 0%,
+    rgba(39, 39, 39, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+/* Show fades when container is scrollable */
+.fade-top.visible {
+  opacity: 1;
+}
+
+.fade-bottom.visible {
+  opacity: 1;
+}
+
+/* Subcategory scrollable container */
+.sidebar-subcategory-header + .scroll-container-wrapper {
+  margin-left: 16px !important;
+}
+
+/* Hide fades when not needed */
+.fade-top:not(.visible),
+.fade-bottom:not(.visible) {
+  display: none;
+}
+
+/* Category header content */
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Category icon styling */
+.category-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* Makes icon white */
+  opacity: 0.9;
 }
