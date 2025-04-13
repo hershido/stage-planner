@@ -57,14 +57,12 @@ body {
 
 /* App logo styles */
 .sidebar-app-logo {
-  padding: 10px 0;
+  padding: 10px 18px;
   border-bottom: 1px solid #444;
   margin-bottom: 15px;
   display: flex;
   justify-content: center;
   margin-top: 5px;
-  margin-left: 0;
-  margin-right: 0;
   width: 100%;
 }
 
@@ -310,7 +308,7 @@ table tr.spacer-row:hover .row-insert-container,
   overflow-x: hidden;
   z-index: 100;
   background-color: #2d2d2d;
-  padding: 0 18px;
+  padding: 0;
 }
 
 .content-container {
@@ -778,4 +776,9 @@ table tr.spacer-row:hover .row-insert-container,
   object-fit: contain;
   filter: brightness(0) invert(1); /* Makes icon white */
   opacity: 0.9;
+}
+
+/* Add padding to inner sidebar content */
+.sidebar-inner-content {
+  padding: 0 18px;
 }

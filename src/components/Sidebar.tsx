@@ -650,7 +650,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     <div
       style={{
         width: "330px",
-        padding: "14px",
+        padding: 0,
         borderRight: "1px solid #222",
         backgroundColor: "#272727",
         color: "#ffffff",
@@ -664,101 +664,103 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         <img src={appLogo} alt="Stage Planner" />
       </div>
 
-      <h2
-        style={{
-          marginBottom: "16px",
-          color: "#ffffff",
-          fontSize: "18px",
-          fontWeight: "400",
-          textAlign: "center",
-          letterSpacing: "1px",
-          textTransform: "uppercase",
-          fontFamily: "'Roboto Mono', monospace",
-        }}
-      >
-        Items
-      </h2>
-
-      {/* Search input */}
-      <div style={{ marginBottom: "20px" }}>
-        <input
-          type="text"
-          placeholder="Search items..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+      <div className="sidebar-inner-content">
+        <h2
           style={{
-            width: "100%",
-            padding: "10px 12px",
-            borderRadius: "3px",
-            border: "1px solid #555",
-            backgroundColor: "#2a2a2a",
-            color: "white",
-            outline: "none",
-            fontSize: "14px",
+            marginBottom: "16px",
+            color: "#ffffff",
+            fontSize: "18px",
+            fontWeight: "400",
+            textAlign: "center",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
             fontFamily: "'Roboto Mono', monospace",
           }}
-        />
-      </div>
+        >
+          Items
+        </h2>
 
-      <div style={{ flexGrow: 1, overflowY: "auto" }}>
-        {instrumentItems.length > 0 && (
-          <Category
-            title="Instruments"
-            items={instrumentItems}
-            onItemClick={onItemClick}
-            isSearching={searchTerm.trim() !== ""}
-            icon={acousticGuitarOnStand}
-          />
-        )}
-
-        {equipmentItems.length > 0 && (
-          <EquipmentCategory
-            speakerItems={speakerItems}
-            guitarAmpItems={guitarAmpItems}
-            bassAmpItems={bassAmpItems}
-            stageGearItems={stageGearItems}
-            monitorItems={monitorItems}
-            onItemClick={onItemClick}
-            isSearching={searchTerm.trim() !== ""}
-            icon={drummerMixer}
-          />
-        )}
-
-        {labelItems.length > 0 && (
-          <Category
-            title="Labels"
-            items={labelItems}
-            onItemClick={onItemClick}
-            isSearching={searchTerm.trim() !== ""}
-            icon={textLabel}
-          />
-        )}
-
-        {musicianItems.length > 0 && (
-          <Category
-            title="Musicians"
-            items={musicianItems}
-            onItemClick={onItemClick}
-            isSearching={searchTerm.trim() !== ""}
-            icon={vocalistMale}
-          />
-        )}
-
-        {filteredItems.length === 0 && (
-          <div
+        {/* Search input */}
+        <div style={{ marginBottom: "20px" }}>
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              textAlign: "center",
-              padding: "30px 0",
-              color: "#aaa",
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
-              borderRadius: "6px",
-              margin: "10px 0",
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: "3px",
+              border: "1px solid #555",
+              backgroundColor: "#2a2a2a",
+              color: "white",
+              outline: "none",
+              fontSize: "14px",
+              fontFamily: "'Roboto Mono', monospace",
             }}
-          >
-            <div style={{ fontSize: "20px", marginBottom: "8px" }}>🔍</div>
-            No items found
-          </div>
-        )}
+          />
+        </div>
+
+        <div style={{ flexGrow: 1, overflowY: "auto" }}>
+          {instrumentItems.length > 0 && (
+            <Category
+              title="Instruments"
+              items={instrumentItems}
+              onItemClick={onItemClick}
+              isSearching={searchTerm.trim() !== ""}
+              icon={acousticGuitarOnStand}
+            />
+          )}
+
+          {equipmentItems.length > 0 && (
+            <EquipmentCategory
+              speakerItems={speakerItems}
+              guitarAmpItems={guitarAmpItems}
+              bassAmpItems={bassAmpItems}
+              stageGearItems={stageGearItems}
+              monitorItems={monitorItems}
+              onItemClick={onItemClick}
+              isSearching={searchTerm.trim() !== ""}
+              icon={drummerMixer}
+            />
+          )}
+
+          {labelItems.length > 0 && (
+            <Category
+              title="Labels"
+              items={labelItems}
+              onItemClick={onItemClick}
+              isSearching={searchTerm.trim() !== ""}
+              icon={textLabel}
+            />
+          )}
+
+          {musicianItems.length > 0 && (
+            <Category
+              title="Musicians"
+              items={musicianItems}
+              onItemClick={onItemClick}
+              isSearching={searchTerm.trim() !== ""}
+              icon={vocalistMale}
+            />
+          )}
+
+          {filteredItems.length === 0 && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "30px 0",
+                color: "#aaa",
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                borderRadius: "6px",
+                margin: "10px 0",
+              }}
+            >
+              <div style={{ fontSize: "20px", marginBottom: "8px" }}>🔍</div>
+              No items found
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
