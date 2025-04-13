@@ -39,5 +39,5 @@
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0"
   },
-  "homepage": "https://github.com/hershido/stage-planner.git"
+  "homepage": "https://hershido.github.io/stage-planner"
 }
