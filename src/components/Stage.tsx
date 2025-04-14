@@ -14,7 +14,6 @@ interface StageProps {
     size: { width: number; height: number; isFlipped?: boolean }
   ) => void;
   onDuplicate?: (id: string, position: { x: number; y: number }) => void;
-  onZIndexChange?: (id: string, newZIndex: number) => void;
   latestItemId?: string | null;
   onItemSelected?: () => void;
   onExport?: (handler: () => void) => void;
@@ -107,10 +106,6 @@ const StageItemComponent: React.FC<{
     text: string,
     textFormatting?: { isBold?: boolean; isItalic?: boolean; fontSize?: number }
   ) => void;
-  onZIndexChange?: (
-    id: string,
-    action: "forward" | "backward" | "front" | "back"
-  ) => void;
   allItems: StageItem[];
   selectedItemIds: string[];
 }> = ({
@@ -121,7 +116,6 @@ const StageItemComponent: React.FC<{
   onResize,
   onDuplicate,
   onTextUpdate,
-  onZIndexChange,
   allItems,
   selectedItemIds,
 }) => {
@@ -864,125 +858,28 @@ const StageItemComponent: React.FC<{
     );
   };
 
-  // Apply styles to the item container including position, size, and selection state
-  const itemStyle: React.CSSProperties = {
-    position: "absolute",
-    left: `${item.position.x}px`,
-    top: `${item.position.y}px`,
-    width: `${itemSize.width}px`,
-    height: `${itemSize.height}px`,
-    transform: item.isFlipped ? "scaleX(-1)" : "none",
-    border: isSelected ? "2px solid #3498db" : "2px solid transparent",
-    borderRadius: "4px",
-    backgroundColor: "transparent",
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: item.zIndex || 1, // Apply z-index with default of 1
-    transition: isResizing ? "none" : "border 0.2s ease", // Only animate border changes when not resizing
-    opacity: isDragging ? 0.5 : 1,
-    cursor: isResizing ? "auto" : "move",
-    filter:
-      "drop-shadow(0 0 0 white) drop-shadow(0 0 1px white) drop-shadow(0 0 2px white) drop-shadow(0 0 3px white)",
-  };
-
-  // Add z-index control buttons
-  const renderZIndexControls = () => {
-    if (!isSelected || !onZIndexChange) return null;
-
-    return (
-      <div
-        className="z-index-controls"
-        style={{
-          position: "absolute",
-          bottom: "-30px",
-          right: "0",
-          display: "flex",
-          gap: "5px",
-        }}
-      >
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onZIndexChange(item.id, "front");
-          }}
-          title="Bring to Front"
-          style={{
-            padding: "2px 4px",
-            fontSize: "10px",
-            background: "#3498db",
-            color: "white",
-            border: "none",
-            borderRadius: "3px",
-            cursor: "pointer",
-          }}
-        >
-          ⤒
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onZIndexChange(item.id, "forward");
-          }}
-          title="Bring Forward"
-          style={{
-            padding: "2px 4px",
-            fontSize: "10px",
-            background: "#3498db",
-            color: "white",
-            border: "none",
-            borderRadius: "3px",
-            cursor: "pointer",
-          }}
-        >
-          ↑
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onZIndexChange(item.id, "backward");
-          }}
-          title="Send Backward"
-          style={{
-            padding: "2px 4px",
-            fontSize: "10px",
-            background: "#3498db",
-            color: "white",
-            border: "none",
-            borderRadius: "3px",
-            cursor: "pointer",
-          }}
-        >
-          ↓
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onZIndexChange(item.id, "back");
-          }}
-          title="Send to Back"
-          style={{
-            padding: "2px 4px",
-            fontSize: "10px",
-            background: "#3498db",
-            color: "white",
-            border: "none",
-            borderRadius: "3px",
-            cursor: "pointer",
-          }}
-        >
-          ⤓
-        </button>
-      </div>
-    );
-  };
-
   return (
     <div
       ref={drag as unknown as React.RefObject<HTMLDivElement>}
       onClick={handleClick}
-      style={itemStyle}
+      style={{
+        position: "absolute",
+        left: item.position.x,
+        top: item.position.y,
+        width: `${itemSize.width}px`,
+        height: `${itemSize.height}px`,
+        border: isSelected ? "2px solid #3498db" : "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: isDragging ? 0.5 : 1,
+        cursor: isResizing ? "auto" : "move",
+        zIndex: isSelected ? 2 : 1,
+        boxShadow: isSelected ? "0 0 5px rgba(52, 152, 219, 0.5)" : "none",
+        transition: isResizing ? "none" : "box-shadow 0.2s ease",
+        backgroundColor: "transparent",
+        borderRadius: item.name === "Text Label" ? "4px" : "0",
+      }}
     >
       {item.name === "Text Label" ? (
         isEditingText ? (
@@ -1134,7 +1031,6 @@ const StageItemComponent: React.FC<{
             itemId={item.id}
             onResizeStart={handleResizeStart}
           />
-          {renderZIndexControls()}
         </>
       )}
     </div>
@@ -1150,7 +1046,6 @@ const Stage: React.FC<StageProps> = ({
   onDelete,
   onResize = () => {}, // Default empty function if not provided
   onDuplicate = () => {}, // Default empty function if not provided
-  onZIndexChange,
   latestItemId,
   onItemSelected = () => {}, // Default empty function if not provided
   onExport, // Function to trigger exporting stage configuration
@@ -2005,93 +1900,6 @@ const Stage: React.FC<StageProps> = ({
     [items, onImport]
   );
 
-  // Handle z-index changes
-  const handleZIndexChange = (
-    id: string,
-    action: "forward" | "backward" | "front" | "back"
-  ) => {
-    // Find the current item and its z-index
-    const item = items.find((item) => item.id === id);
-    if (!item) return;
-
-    const currentZIndex = item.zIndex ?? 1; // Default to 1 if not set
-    let newZIndex = currentZIndex;
-
-    // Find the min and max z-indices in the stage
-    const zIndices = items.map((item) => item.zIndex ?? 1);
-    const maxZIndex = Math.max(...zIndices);
-
-    switch (action) {
-      case "forward":
-        // Move one step up
-        newZIndex = currentZIndex + 1;
-        break;
-      case "backward":
-        // Move one step down, but not below 1
-        newZIndex = Math.max(1, currentZIndex - 1);
-        break;
-      case "front":
-        // Move to the very front (highest z-index + 1)
-        newZIndex = maxZIndex + 1;
-        break;
-      case "back":
-        // Move to the very back (z-index of 1)
-        newZIndex = 1;
-        break;
-    }
-
-    // Only update if the z-index has changed
-    if (newZIndex !== currentZIndex && onZIndexChange) {
-      onZIndexChange(id, newZIndex);
-    }
-  };
-
-  // Render stage items
-  const renderedItems = items
-    .slice() // Create a copy to avoid mutating the original array
-    .sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1)) // Sort by z-index
-    .map((item) => {
-      const isSelected = selectedItemIds.includes(item.id);
-
-      return (
-        <StageItemComponent
-          key={item.id}
-          item={item}
-          onMove={onMove}
-          onDelete={onDelete}
-          isSelected={isSelected}
-          onSelect={(id) => {
-            // When shift is pressed, toggle the selection
-            if (isShiftPressedRef.current) {
-              setSelectedItemIds((prev) => {
-                if (prev.includes(id)) {
-                  // If already selected, remove it
-                  return prev.filter((itemId) => itemId !== id);
-                } else {
-                  // If not selected, add it
-                  return [...prev, id];
-                }
-              });
-            } else {
-              // Without shift, select only this item
-              setSelectedItemIds([id]);
-            }
-
-            // Focus the stage when an item is selected
-            if (stageRef.current) {
-              stageRef.current.focus();
-            }
-          }}
-          onResize={handleResize}
-          onDuplicate={onDuplicate}
-          onTextUpdate={handleTextUpdate}
-          onZIndexChange={handleZIndexChange}
-          allItems={items}
-          selectedItemIds={selectedItemIds}
-        />
-      );
-    });
-
   return (
     <div
       id="stage"
@@ -2131,7 +1939,42 @@ const Stage: React.FC<StageProps> = ({
         }}
       />
 
-      {renderedItems}
+      {items.map((item) => (
+        <StageItemComponent
+          key={item.id}
+          item={item}
+          onMove={onMove}
+          onDelete={onDelete}
+          isSelected={selectedItemIds.includes(item.id)}
+          onSelect={(id) => {
+            // When shift is pressed, toggle the selection
+            if (isShiftPressedRef.current) {
+              setSelectedItemIds((prev) => {
+                if (prev.includes(id)) {
+                  // If already selected, remove it
+                  return prev.filter((itemId) => itemId !== id);
+                } else {
+                  // If not selected, add it
+                  return [...prev, id];
+                }
+              });
+            } else {
+              // Without shift, select only this item
+              setSelectedItemIds([id]);
+            }
+
+            // Focus the stage when an item is selected
+            if (stageRef.current) {
+              stageRef.current.focus();
+            }
+          }}
+          onResize={handleResize}
+          onDuplicate={onDuplicate}
+          onTextUpdate={handleTextUpdate}
+          allItems={items}
+          selectedItemIds={selectedItemIds}
+        />
+      ))}
     </div>
   );
 };

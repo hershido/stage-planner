@@ -1458,64 +1458,37 @@ function App() {
 
   const handleDuplicate = useCallback(
     (id: string, position: { x: number; y: number }) => {
-      console.log("Duplicating item:", id);
+      console.log("Duplicating item:", id, "at position:", position);
 
-      // Find the item to duplicate
-      const itemToDuplicate = items.find((item) => item.id === id);
-      if (!itemToDuplicate) {
-        console.warn(`Item with id ${id} not found for duplication`);
-        return;
-      }
-
-      // Generate a new unique ID with timestamp
-      const timestamp = Date.now();
-      const newId = `${itemToDuplicate.name}-${timestamp}`;
-
-      // Create a new item based on the duplicated one
-      const newItem: StageItem = {
-        ...itemToDuplicate,
-        id: newId,
-        position, // Use the provided position for the duplicate
-      };
-
-      // Add the new item to the state
       setItems((currentItems) => {
-        const newItems = [...currentItems, newItem];
-        console.log("Adding duplicated item to state:", newItem);
+        // Find the item to duplicate
+        const originalItem = currentItems.find((item) => item.id === id);
+        if (!originalItem) return currentItems;
 
-        // Add this action to history
+        // Create a new ID with timestamp
+        const timestamp = Date.now();
+        const newId = `${originalItem.name}-${timestamp}`;
+
+        // Create a duplicate with new ID and position
+        const duplicatedItem: StageItem = {
+          ...originalItem,
+          id: newId,
+          position,
+        };
+
+        console.log("Created duplicate item:", duplicatedItem);
+
+        // Add the new item to the state
+        const newItems = [...currentItems, duplicatedItem];
+
+        // Add to history (with the new item as latest)
         addToHistory(newItems, newId);
 
-        return newItems;
-      });
-
-      // Select the new item
-      setLatestItemId(newId);
-    },
-    [items, addToHistory]
-  );
-
-  // Handle z-index changes
-  const handleZIndexChange = useCallback(
-    (id: string, newZIndex: number) => {
-      console.log(`Changing z-index of item ${id} to ${newZIndex}`);
-
-      setItems((currentItems) => {
-        const newItems = currentItems.map((item) => {
-          if (item.id === id) {
-            return { ...item, zIndex: newZIndex };
-          }
-          return item;
-        });
-
-        // Add this action to history
-        addToHistory(newItems, id);
+        // Set it as latest
+        setLatestItemId(newId);
 
         return newItems;
       });
-
-      // Mark as having unsaved changes
-      setHasUnsavedChanges(true);
     },
     [addToHistory]
   );
@@ -1760,7 +1733,6 @@ function App() {
                     console.log("Setting import handler in App");
                     importConfigRef.current = handler;
                   }}
-                  onZIndexChange={handleZIndexChange}
                 />
               </div>
             </div>
