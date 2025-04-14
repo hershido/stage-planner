@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import ConfigManager from "./ConfigManager";
 import { StageItem, StageInputOutput, TechnicalInfo } from "../types/stage";
+import newProjectIcon from "../assets/icons/newProjectIcon.svg";
+import undoIcon from "../assets/icons/undoIcon.svg";
+import redoIcon from "../assets/icons/redoIcon.svg";
+import exprortToPdfIcon from "../assets/icons/exprortToPdf.svg";
+import sidePanelIcon from "../assets/icons/sidePanelIcon.svg";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -277,7 +282,13 @@ const Header: React.FC<HeaderProps> = ({
           className="header-button"
           title="New stage plan"
         >
-          <span style={{ fontFamily: "sans-serif" }}>+</span>
+          <img
+            src={newProjectIcon}
+            alt="New"
+            width="20"
+            height="20"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
         </button>
 
         {/* ConfigManager (includes Load button) */}
@@ -303,7 +314,13 @@ const Header: React.FC<HeaderProps> = ({
           }`}
           title="Undo"
         >
-          <span style={{ fontFamily: "sans-serif" }}>↩</span>
+          <img
+            src={undoIcon}
+            alt="Undo"
+            width="20"
+            height="20"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
         </button>
 
         {/* Redo button */}
@@ -315,7 +332,13 @@ const Header: React.FC<HeaderProps> = ({
           }`}
           title="Redo"
         >
-          <span style={{ fontFamily: "sans-serif" }}>↪</span>
+          <img
+            src={redoIcon}
+            alt="Redo"
+            width="20"
+            height="20"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
         </button>
 
         {/* Side Panel toggle button */}
@@ -324,28 +347,13 @@ const Header: React.FC<HeaderProps> = ({
           className={`header-button ${isSidePanelOpen ? "active" : ""}`}
           title="Open side panel with Input/Output and Technical Info"
         >
-          <span
-            style={{
-              fontFamily: "sans-serif",
-              fontSize: "20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "2px",
-            }}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-              <line x1="15" y1="12" x2="3" y2="12" />
-            </svg>
-          </span>
+          <img
+            src={sidePanelIcon}
+            alt="Side Panel"
+            width="20"
+            height="20"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
         </button>
 
         {/* Export PDF button */}
@@ -354,7 +362,13 @@ const Header: React.FC<HeaderProps> = ({
           className="header-button pdf-button"
           title="Export to PDF"
         >
-          <span style={{ fontFamily: "sans-serif" }}>📄</span>
+          <img
+            src={exprortToPdfIcon}
+            alt="Export to PDF"
+            width="20"
+            height="20"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
         </button>
       </div>
 

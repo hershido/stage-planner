@@ -8,6 +8,9 @@ import {
 } from "../services/configService";
 import { StageItem, StageInputOutput, TechnicalInfo } from "../types/stage";
 import { SaveStatus } from "./Header";
+import openProjectIcon from "../assets/icons/openProjectIcon.svg";
+import saveIcon from "../assets/icons/saveIcon.svg";
+import saveAsIcon from "../assets/icons/saveAsIcon.svg";
 
 interface ConfigManagerProps {
   items: StageItem[];
@@ -209,7 +212,13 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
         className="header-button"
         title="Load configuration"
       >
-        <span style={{ fontFamily: "sans-serif" }}>&#128194;</span>
+        <img
+          src={openProjectIcon}
+          alt="Open"
+          width="20"
+          height="20"
+          style={{ filter: "brightness(0) invert(1)" }}
+        />
       </button>
 
       {/* Save button - enabled if we have unsaved changes */}
@@ -236,30 +245,41 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
             : "Save as a new configuration"
         }
       >
-        <span style={{ fontFamily: "sans-serif" }}>
-          {saveStatus === "saving" ? (
-            <div
-              className="spinner-sm"
-              style={{ width: "14px", height: "14px" }}
-            ></div>
-          ) : (
-            "💾"
-          )}
-        </span>
+        {saveStatus === "saving" ? (
+          <div
+            className="spinner-sm"
+            style={{ width: "14px", height: "14px" }}
+          ></div>
+        ) : (
+          <img
+            src={currentConfigId ? saveIcon : saveAsIcon}
+            alt={currentConfigId ? "Save" : "Save As"}
+            width="20"
+            height="20"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
+        )}
       </button>
 
-      {/* Save As button - always enabled */}
-      <button
-        onClick={() => {
-          if (onSaveAs) onSaveAs();
-          openSaveModal();
-        }}
-        className="header-button"
-        title="Save as a new configuration"
-        disabled={saveStatus === "saving"}
-      >
-        <span style={{ fontFamily: "sans-serif" }}>&#128190;+</span>
-      </button>
+      {/* Save As button - only show if we have a currentConfigId */}
+      {currentConfigId && onSaveAs && (
+        <button
+          onClick={() => {
+            onSaveAs();
+            openSaveModal();
+          }}
+          className="header-button"
+          title="Save as a new configuration"
+        >
+          <img
+            src={saveAsIcon}
+            alt="Save As"
+            width="20"
+            height="20"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
+        </button>
+      )}
     </div>
   );
 
