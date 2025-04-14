@@ -7,6 +7,7 @@ import {
   SavedConfig,
 } from "../services/configService";
 import { StageItem, StageInputOutput, TechnicalInfo } from "../types/stage";
+import { SaveStatus } from "./Header";
 
 interface ConfigManagerProps {
   items: StageItem[];
@@ -24,6 +25,7 @@ interface ConfigManagerProps {
   hasUnsavedChanges: boolean;
   onSave: () => void;
   onSaveAs?: () => void;
+  saveStatus?: SaveStatus;
 }
 
 // Note: currentConfigName is required by the interface but displayed directly in App component
@@ -36,6 +38,7 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
   hasUnsavedChanges,
   onSave,
   onSaveAs,
+  saveStatus = "idle",
 }) => {
   const { currentUser } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -212,19 +215,34 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
       {/* Save button - enabled only when we have unsaved changes and a current config ID */}
       <button
         onClick={onSave}
-        disabled={!hasUnsavedChanges || !currentConfigId}
+        disabled={
+          !hasUnsavedChanges || !currentConfigId || saveStatus === "saving"
+        }
         className={`header-button ${
-          !hasUnsavedChanges || !currentConfigId ? "disabled" : ""
+          !hasUnsavedChanges || !currentConfigId || saveStatus === "saving"
+            ? "disabled"
+            : ""
         }`}
         title={
           !currentConfigId
             ? "No configuration loaded to save"
             : !hasUnsavedChanges
             ? "No changes to save"
+            : saveStatus === "saving"
+            ? "Saving in progress..."
             : "Save changes to current configuration"
         }
       >
-        <span style={{ fontFamily: "sans-serif" }}>&#128190;</span>
+        <span style={{ fontFamily: "sans-serif" }}>
+          {saveStatus === "saving" ? (
+            <div
+              className="spinner-sm"
+              style={{ width: "14px", height: "14px" }}
+            ></div>
+          ) : (
+            "💾"
+          )}
+        </span>
       </button>
 
       {/* Save As button - always enabled */}
@@ -235,6 +253,7 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
         }}
         className="header-button"
         title="Save as a new configuration"
+        disabled={saveStatus === "saving"}
       >
         <span style={{ fontFamily: "sans-serif" }}>&#128190;+</span>
       </button>

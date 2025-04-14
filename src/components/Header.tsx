@@ -3,6 +3,8 @@ import ConfigManager from "./ConfigManager";
 import { StageItem, StageInputOutput, TechnicalInfo } from "../types/stage";
 import pdfDownloadIcon from "../assets/icons/pdfDownload.svg";
 
+export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
 interface HeaderProps {
   items: StageItem[];
   inputOutput?: StageInputOutput;
@@ -27,6 +29,8 @@ interface HeaderProps {
   historyLength: number;
   openTechnicalInfo: () => void;
   onTitleChange?: (newTitle: string) => void;
+  saveStatus: SaveStatus;
+  saveError: string | null;
   children?: ReactNode;
 }
 
@@ -48,6 +52,8 @@ const Header: React.FC<HeaderProps> = ({
   historyLength,
   openTechnicalInfo,
   onTitleChange,
+  saveStatus,
+  saveError,
   children,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -76,6 +82,34 @@ const Header: React.FC<HeaderProps> = ({
     } else if (e.key === "Escape") {
       setTitleText(currentConfigName || ""); // Reset to original
       setIsEditingTitle(false);
+    }
+  };
+
+  // Status indicator styles
+  const getStatusStyles = () => {
+    switch (saveStatus) {
+      case "saving":
+        return {
+          color: "rgba(0, 116, 232, 0.7)",
+          display: "flex",
+          alignItems: "center",
+        };
+      case "saved":
+        return {
+          color: "rgba(76, 175, 80, 0.7)",
+          display: "flex",
+          alignItems: "center",
+        };
+      case "error":
+        return { color: "#f44336", display: "flex", alignItems: "center" };
+      default:
+        return hasUnsavedChanges
+          ? {
+              color: "rgba(255, 152, 0, 0.7)",
+              display: "flex",
+              alignItems: "center",
+            }
+          : { display: "none" };
     }
   };
 
@@ -117,10 +151,14 @@ const Header: React.FC<HeaderProps> = ({
               />
             ) : (
               <>
-                <h1>
-                  {hasUnsavedChanges
-                    ? `${currentConfigName} *`
-                    : currentConfigName}
+                <h1
+                  style={{
+                    fontFamily: "'Roboto Mono', monospace",
+                    fontWeight: 400,
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  {currentConfigName}
                 </h1>
                 {(isHovering || isEditingTitle) && onTitleChange && (
                   <button
@@ -155,6 +193,79 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </div>
         )}
+
+        {/* Status indicator */}
+        <div style={getStatusStyles()} className="save-status-indicator">
+          {saveStatus === "saving" && (
+            <>
+              <div className="status-bullet saving">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+              <span>Saving...</span>
+            </>
+          )}
+          {saveStatus === "saved" && (
+            <>
+              <div className="status-bullet saved">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path d="M20 6L9 17L4 12" />
+                </svg>
+              </div>
+              <span>Changes saved</span>
+            </>
+          )}
+          {saveStatus === "error" && (
+            <>
+              <div className="status-bullet">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <span>{saveError || "Error saving"}</span>
+            </>
+          )}
+          {saveStatus === "idle" && hasUnsavedChanges && (
+            <>
+              <div className="status-bullet unsaved">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <circle cx="12" cy="12" r="6" />
+                </svg>
+              </div>
+              <span>Unsaved changes</span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Control buttons */}

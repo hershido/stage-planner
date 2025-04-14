@@ -3,7 +3,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Stage from "./components/Stage";
 import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
+import Header, { SaveStatus } from "./components/Header";
 import Login from "./components/Login";
 import UserMenu from "./components/UserMenu";
 import InputOutputTable from "./components/InputOutputTable";
@@ -86,6 +86,10 @@ function App() {
 
   // Add state to track if we've made a title change
   const [hasTitleChanged, setHasTitleChanged] = useState(false);
+
+  // Add state for save status and error message
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Function to handle technical info changes
   const handleTechnicalInfoChange = useCallback(
@@ -637,6 +641,10 @@ function App() {
         return;
       }
 
+      // Set status to saving
+      setSaveStatus("saving");
+      setSaveError(null);
+
       console.log(`Saving configuration '${currentConfigName}'...`);
       console.log("Current items state being saved:", items);
       console.log("Current name being saved:", currentConfigName);
@@ -659,8 +667,8 @@ function App() {
       // Reset title changed flag
       setHasTitleChanged(false);
 
-      // Show success message with the updated name
-      alert(`Configuration '${currentConfigName}' updated successfully!`);
+      // Update save status to saved
+      setSaveStatus("saved");
 
       // Log the updated name for debugging
       console.log(`Configuration saved with name: ${currentConfigName}`);
@@ -668,12 +676,27 @@ function App() {
       // Reset loading flag after a delay to ensure all state updates complete
       setTimeout(() => {
         isLoadingConfigRef.current = false;
+
+        // Reset save status after 3 seconds
+        setTimeout(() => {
+          setSaveStatus("idle");
+        }, 3000);
       }, 100);
     } catch (error) {
       // Reset loading flag on error
       isLoadingConfigRef.current = false;
+
       console.error("Error saving configuration:", error);
-      alert("Failed to save configuration. Please try again.");
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      setSaveStatus("error");
+      setSaveError(`Failed to save: ${errorMessage}`);
+
+      // Reset error state after 5 seconds
+      setTimeout(() => {
+        setSaveStatus("idle");
+        setSaveError(null);
+      }, 5000);
     }
   }, [
     currentUser,
@@ -1283,7 +1306,7 @@ function App() {
               await writable.close();
               console.log("PDF saved successfully");
             })
-            .catch((err: Error) => {
+            .catch((err: { name: string; message: string }) => {
               // Check if this is a user cancellation (AbortError)
               if (err.name === "AbortError") {
                 console.log("Save dialog was canceled by user");
@@ -1618,6 +1641,8 @@ function App() {
           historyLength={historyLength}
           openTechnicalInfo={() => setIsTechnicalInfoModalOpen(true)}
           onTitleChange={handleTitleChange}
+          saveStatus={saveStatus}
+          saveError={saveError}
         >
           <UserMenu />
         </Header>

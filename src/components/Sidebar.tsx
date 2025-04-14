@@ -193,6 +193,9 @@ const Category: React.FC<CategoryProps> = ({
   // Check if enough items to show fades
   const shouldShowFades = items.length >= 9;
 
+  // Determine if scrolling should be enabled
+  const showScrollable = items.length >= 10;
+
   // Handle manual toggle
   const handleToggle = () => {
     const newState = !isExpanded;
@@ -224,7 +227,14 @@ const Category: React.FC<CategoryProps> = ({
               shouldShowFades && canScrollUp ? "visible" : ""
             }`}
           ></div>
-          <div ref={scrollContainerRef} className="scrollable-container">
+          <div
+            ref={scrollContainerRef}
+            className={`${
+              showScrollable
+                ? "scrollable-container"
+                : "non-scrollable-container"
+            }`}
+          >
             <div className="sidebar-grid-container">
               {items.map((item) => (
                 <DraggableItemComponent
