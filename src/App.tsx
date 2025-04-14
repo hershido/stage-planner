@@ -78,9 +78,21 @@ function App() {
     { items: [], latestItemId: null },
   ]);
 
+  // Add a ref to track when we're loading a configuration
+  const isLoadingConfigRef = useRef(false);
+
+  // Add a ref to track component mount time
+  const mountTimeRef = useRef(Date.now());
+
   // Function to handle technical info changes
   const handleTechnicalInfoChange = useCallback(
     (newTechnicalInfo: TechnicalInfo) => {
+      // Don't mark as having unsaved changes if we're loading a configuration
+      if (isLoadingConfigRef.current) {
+        setTechnicalInfo(newTechnicalInfo);
+        return;
+      }
+
       // Deep equality check to avoid unnecessary updates and unsaved changes flag
       const isSame = (a: TechnicalInfo, b: TechnicalInfo): boolean => {
         // Compare all simple properties first
@@ -121,13 +133,116 @@ function App() {
         return true;
       };
 
+      // Check if the new technical info has any content
+      const hasContent =
+        newTechnicalInfo.projectTitle ||
+        newTechnicalInfo.generalInfo ||
+        newTechnicalInfo.houseSystem ||
+        newTechnicalInfo.mixingDesk ||
+        newTechnicalInfo.monitoring ||
+        newTechnicalInfo.backline ||
+        newTechnicalInfo.soundCheck ||
+        newTechnicalInfo.personnel.length > 0;
+
       // Only set technicalInfo and mark as unsaved if there are actual changes
       if (!isSame(technicalInfo, newTechnicalInfo)) {
         setTechnicalInfo(newTechnicalInfo);
-        setHasUnsavedChanges(true);
+
+        // Only mark as unsaved if there's actual content
+        if (hasContent) {
+          setHasUnsavedChanges(true);
+        }
       }
     },
     [technicalInfo]
+  );
+
+  // Handler for input/output changes
+  const handleInputOutputChange = useCallback(
+    (newInputOutput: StageInputOutput) => {
+      // Always update the state even if we're in loading mode
+      setInputOutput(newInputOutput);
+
+      // Don't mark as having unsaved changes if we're loading a configuration
+      if (isLoadingConfigRef.current) {
+        console.log("Ignoring input/output change during loading");
+        return;
+      }
+
+      // For safety, don't mark as changed during the first 2 seconds after loading a config
+      if (currentConfigId) {
+        const timeSinceMount = Date.now() - mountTimeRef.current;
+        if (timeSinceMount < 2000) {
+          console.log("Ignoring input/output change during initial render");
+          return;
+        }
+      }
+
+      // Deep comparison to avoid unnecessary unsaved changes flags
+      const isSimilar = (a: StageInputOutput, b: StageInputOutput): boolean => {
+        // Compare lengths first
+        if (
+          a.inputs.length !== b.inputs.length ||
+          a.outputs.length !== b.outputs.length
+        ) {
+          return false;
+        }
+
+        // Check if any inputs have meaningful content that differs
+        for (let i = 0; i < a.inputs.length; i++) {
+          const inputA = a.inputs[i];
+          const inputB = b.inputs[i];
+
+          // Compare relevant fields
+          if (
+            inputA.name !== inputB.name ||
+            inputA.channelType !== inputB.channelType ||
+            inputA.standType !== inputB.standType
+          ) {
+            return false;
+          }
+        }
+
+        // Check if any outputs have meaningful content that differs
+        for (let i = 0; i < a.outputs.length; i++) {
+          const outputA = a.outputs[i];
+          const outputB = b.outputs[i];
+
+          // Compare relevant fields
+          if (
+            outputA.name !== outputB.name ||
+            outputA.channelType !== outputB.channelType ||
+            outputA.monitorType !== outputB.monitorType
+          ) {
+            return false;
+          }
+        }
+
+        // If we got here, everything is similar enough
+        return true;
+      };
+
+      // Check if there's any meaningful difference before marking as unsaved
+      if (!isSimilar(inputOutput, newInputOutput)) {
+        // Check if there's any content in the input/output tables
+        const hasContent =
+          newInputOutput.inputs.some(
+            (i) => i.name || i.channelType || i.standType
+          ) ||
+          newInputOutput.outputs.some(
+            (o) => o.name || o.channelType || o.monitorType
+          ) ||
+          newInputOutput.inputs.length > 1 ||
+          newInputOutput.outputs.length > 1;
+
+        // Only mark as having unsaved changes if there's actual content
+        if (hasContent) {
+          console.log("Marking as unsaved due to input/output change");
+          setHasUnsavedChanges(true);
+        }
+      }
+    },
+    [inputOutput, currentConfigId, mountTimeRef]
   );
 
   // Function to add a new entry to history
@@ -176,9 +291,9 @@ function App() {
       // Update UI states
       setHistoryLength(newHistory.length);
 
-      // Mark as having unsaved changes unless this is the initial load
-      // or we're working with a completely empty configuration
-      if (!isInitialLoad && (currentConfigId || newItems.length > 0)) {
+      // Only mark as unsaved if this is not an initial load, we're not currently loading a config,
+      // and we have actual content
+      if (!isInitialLoad && !isLoadingConfigRef.current) {
         setHasUnsavedChanges(true);
       }
 
@@ -188,7 +303,7 @@ function App() {
         }`
       );
     },
-    [isUndoRedoAction, currentConfigId]
+    [isUndoRedoAction]
   );
 
   // Undo function
@@ -214,6 +329,9 @@ function App() {
       setCurrentHistoryIndex(newIndex);
       setItems(clonedItems);
       setLatestItemId(previousState.latestItemId);
+
+      // Mark as having unsaved changes if we're not at the initial state (index 0)
+      setHasUnsavedChanges(newIndex > 0);
     } else {
       console.log("Nothing to undo");
     }
@@ -242,6 +360,9 @@ function App() {
       setCurrentHistoryIndex(newIndex);
       setItems(clonedItems);
       setLatestItemId(nextState.latestItemId);
+
+      // Always mark as having unsaved changes after redo
+      setHasUnsavedChanges(true);
     } else {
       console.log("Nothing to redo");
     }
@@ -267,29 +388,6 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleUndo, handleRedo]);
-
-  // Handler for input/output changes
-  const handleInputOutputChange = useCallback(
-    (newInputOutput: StageInputOutput) => {
-      setInputOutput(newInputOutput);
-
-      // Only mark as unsaved if we have a current config or if this isn't the initial empty state
-      if (
-        currentConfigId ||
-        newInputOutput.inputs.length > 1 ||
-        newInputOutput.outputs.length > 1 ||
-        newInputOutput.inputs.some(
-          (i) => i.name || i.channelType || i.standType
-        ) ||
-        newInputOutput.outputs.some(
-          (o) => o.name || o.channelType || o.monitorType
-        )
-      ) {
-        setHasUnsavedChanges(true);
-      }
-    },
-    [currentConfigId]
-  );
 
   // Add a safeguard to reset hasUnsavedChanges after creating a new config
   useEffect(() => {
@@ -341,12 +439,18 @@ function App() {
         importedItems.length,
         "items"
       );
+
+      // Set the loading flag to true
+      isLoadingConfigRef.current = true;
+
+      // First reset hasUnsavedChanges to avoid any flickering
+      setHasUnsavedChanges(false);
+
       // Replace current items with imported ones
       setItems(importedItems);
       setLatestItemId(null); // Reset latest ID since we're loading a new config
       setCurrentConfigName(configName);
       setCurrentConfigId(configId || null);
-      setHasUnsavedChanges(false);
 
       // Set input/output data if it exists, otherwise initialize with empty structure with one row each
       setInputOutput(importedInputOutput || initializeEmptyInputOutput());
@@ -372,6 +476,18 @@ function App() {
       if (configId) {
         updateLastAccessed(configId);
       }
+
+      // Reset hasUnsavedChanges after a longer delay to ensure all state updates have completed
+      setTimeout(() => {
+        setHasUnsavedChanges(false);
+        console.log("Reset hasUnsavedChanges after import", configName);
+
+        // Keep loading flag active longer
+        setTimeout(() => {
+          isLoadingConfigRef.current = false;
+          console.log("Reset loading flag after import", configName);
+        }, 1000);
+      }, 500);
     },
     [addToHistory, initializeEmptyInputOutput]
   );
@@ -384,8 +500,10 @@ function App() {
       // Update the items state
       setItems(updatedItems);
 
-      // Mark that we have unsaved changes
-      setHasUnsavedChanges(true);
+      // Only mark as having unsaved changes if we're not loading a configuration
+      if (!isLoadingConfigRef.current) {
+        setHasUnsavedChanges(true);
+      }
 
       // Add to history
       addToHistory(updatedItems, null);
@@ -400,6 +518,7 @@ function App() {
       if (currentUser) {
         try {
           console.log("Attempting to load most recent configuration...");
+          isLoadingConfigRef.current = true; // Set loading flag
           const latestConfig = await getLatestConfiguration(currentUser.uid);
 
           if (latestConfig) {
@@ -416,9 +535,15 @@ function App() {
             );
           } else {
             console.log("No saved configurations found");
+            // Reset loading flag if no config was found
+            setTimeout(() => {
+              isLoadingConfigRef.current = false;
+            }, 50);
           }
         } catch (error) {
           console.error("Error loading latest configuration:", error);
+          // Reset loading flag if there was an error
+          isLoadingConfigRef.current = false;
           // Don't show an error to the user - if this fails, they'll just start with an empty stage
         }
       }
@@ -427,17 +552,47 @@ function App() {
     loadLatestConfig();
   }, [currentUser, handleImport]); // Re-run if the user changes or handleImport changes
 
-  // Ensure we don't mark the app as having unsaved changes after initial load
+  // Ensure we don't mark the app as having unsaved changes after loading
   useEffect(() => {
     // Wait for any initial data loading to complete
     const timer = setTimeout(() => {
       if (currentConfigId) {
         // If we have a configuration loaded, reset unsaved changes flag
+        console.log("Resetting unsaved changes flag for", currentConfigName);
         setHasUnsavedChanges(false);
       }
-    }, 500);
+    }, 1000); // Use a longer timeout to ensure all state changes have settled
 
     return () => clearTimeout(timer);
+  }, [currentConfigId, currentConfigName]);
+
+  // Add an effect that runs on every render to check for unwanted changes
+  useEffect(() => {
+    // Only run this check if we're not explicitly making changes
+    if (currentConfigId && !isLoadingConfigRef.current && hasUnsavedChanges) {
+      console.log(
+        "Detected unwanted change flag - checking if this is a false positive"
+      );
+
+      // If this happens immediately after loading, reset the flag
+      const timer = setTimeout(() => {
+        const timeSinceMount = Date.now() - mountTimeRef.current;
+        // If this happens within 2 seconds of mount or immediately after setting currentConfigId
+        if (timeSinceMount < 2000) {
+          console.log(
+            "Detected false positive for unsaved changes - resetting flag"
+          );
+          setHasUnsavedChanges(false);
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentConfigId, hasUnsavedChanges]);
+
+  // Reset the mount time ref on each load
+  useEffect(() => {
+    mountTimeRef.current = Date.now();
   }, [currentConfigId]);
 
   // Handler for saving current configuration
@@ -491,7 +646,7 @@ function App() {
       // No unsaved changes, just clear everything
       setItems([]);
       setLatestItemId(null);
-      setCurrentConfigName(null);
+      setCurrentConfigName("Untitled");
       setCurrentConfigId(null);
       // Create a new empty input/output object
       const emptyInputOutput = {
@@ -549,7 +704,7 @@ function App() {
             // After saving, clear everything
             setItems([]);
             setLatestItemId(null);
-            setCurrentConfigName(null);
+            setCurrentConfigName("Untitled");
             setCurrentConfigId(null);
             // Create a new empty input/output object
             const emptyInputOutput = {
@@ -602,7 +757,7 @@ function App() {
         // User chose not to save, just clear everything
         setItems([]);
         setLatestItemId(null);
-        setCurrentConfigName(null);
+        setCurrentConfigName("Untitled");
         setCurrentConfigId(null);
         // Create a new empty input/output object
         const emptyInputOutput = {
