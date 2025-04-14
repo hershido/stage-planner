@@ -16,6 +16,12 @@ import vocalistFemale from "../assets/icons/vocalistFemale.svg";
 import dragQueen from "../assets/icons/dragQueen.svg";
 import trumpetPlayer from "../assets/icons/trumpetPlayer.svg";
 import saxophonePlayer from "../assets/icons/saxophonePlayer.svg";
+import trombonePlayer from "../assets/icons/trombonePlayer.svg";
+import bongosPlayer from "../assets/icons/bongosPlayer.svg";
+import congasPlayer from "../assets/icons/congasPlayer.svg";
+import hornSection from "../assets/icons/hornSection.svg";
+import malePunkRockSinger from "../assets/icons/punkRockSinger.svg";
+import femalePunkRockSinger from "../assets/icons/femalePunkRockSinger.svg";
 import guitarAmpMarshallStack from "../assets/icons/guitarAmpMarshallStack.svg";
 import guitarAmpFenderCombo from "../assets/icons/guitarAmpFenderCombo.svg";
 import bassAmpSvtStack from "../assets/icons/bassAmpSvtStack.svg";
@@ -387,6 +393,7 @@ const MusicianCategory: React.FC<{
   keyboardItems: DraggableItem[];
   vocalistItems: DraggableItem[];
   drummerItems: DraggableItem[];
+  percussionItems: DraggableItem[];
   windItems: DraggableItem[];
   onItemClick: (item: DraggableItem) => void;
   isSearching: boolean;
@@ -397,6 +404,7 @@ const MusicianCategory: React.FC<{
   keyboardItems,
   vocalistItems,
   drummerItems,
+  percussionItems,
   windItems,
   onItemClick,
   isSearching,
@@ -410,6 +418,7 @@ const MusicianCategory: React.FC<{
         keyboardItems.length > 0 ||
         vocalistItems.length > 0 ||
         drummerItems.length > 0 ||
+        percussionItems.length > 0 ||
         windItems.length > 0)
   );
 
@@ -422,6 +431,7 @@ const MusicianCategory: React.FC<{
         keyboardItems.length > 0 ||
         vocalistItems.length > 0 ||
         drummerItems.length > 0 ||
+        percussionItems.length > 0 ||
         windItems.length > 0)
     ) {
       setIsExpanded(true);
@@ -433,6 +443,7 @@ const MusicianCategory: React.FC<{
     keyboardItems.length,
     vocalistItems.length,
     drummerItems.length,
+    percussionItems.length,
     windItems.length,
   ]);
 
@@ -505,6 +516,17 @@ const MusicianCategory: React.FC<{
               level="sub"
               isSearching={isSearching}
               icon={drumPlayerMale}
+            />
+          )}
+
+          {percussionItems.length > 0 && (
+            <Category
+              title="Percussion"
+              items={percussionItems}
+              onItemClick={onItemClick}
+              level="sub"
+              isSearching={isSearching}
+              icon={bongosPlayer}
             />
           )}
 
@@ -750,20 +772,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     // Musicians - Singers
     {
       type: "musicians",
-      name: "Male Vocalist",
-      icon: vocalistMale,
-      defaultWidth: 100,
-      defaultHeight: 170,
-    },
-    {
-      type: "musicians",
-      name: "Female Vocalist",
-      icon: vocalistFemale,
-      defaultWidth: 100,
-      defaultHeight: 170,
-    },
-    {
-      type: "musicians",
       name: "Drag Queen",
       icon: dragQueen,
       defaultWidth: 120,
@@ -798,6 +806,66 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       type: "musicians",
       name: "Saxophone Player",
       icon: saxophonePlayer,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Trombone Player",
+      icon: trombonePlayer,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Horn Section",
+      icon: hornSection,
+      defaultWidth: 180,
+      defaultHeight: 170,
+    },
+
+    // Musicians - Percussion
+    {
+      type: "musicians",
+      name: "Bongos Player",
+      icon: bongosPlayer,
+      defaultWidth: 120,
+      defaultHeight: 150,
+    },
+    {
+      type: "musicians",
+      name: "Congas Player",
+      icon: congasPlayer,
+      defaultWidth: 120,
+      defaultHeight: 150,
+    },
+
+    // Musicians - Singers (Vocalists)
+    {
+      type: "musicians",
+      name: "Male Vocalist",
+      icon: vocalistMale,
+      defaultWidth: 100,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Female Vocalist",
+      icon: vocalistFemale,
+      defaultWidth: 100,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Male Punk Rock Singer",
+      icon: malePunkRockSinger,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Female Punk Rock Singer",
+      icon: femalePunkRockSinger,
       defaultWidth: 120,
       defaultHeight: 170,
     },
@@ -951,15 +1019,23 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               vocalistItems={musicianItems.filter(
                 (item) =>
                   item.name.includes("Vocalist") ||
-                  item.name.includes("Drag Queen")
+                  item.name.includes("Drag Queen") ||
+                  item.name.includes("Male Punk Rock") ||
+                  item.name.includes("Female Punk Rock")
               )}
               drummerItems={musicianItems.filter((item) =>
                 item.name.includes("Drummer")
               )}
+              percussionItems={musicianItems.filter(
+                (item) =>
+                  item.name.includes("Bongos") || item.name.includes("Congas")
+              )}
               windItems={musicianItems.filter(
                 (item) =>
                   item.name.includes("Trumpet") ||
-                  item.name.includes("Saxophone")
+                  item.name.includes("Saxophone") ||
+                  item.name.includes("Trombone") ||
+                  item.name.includes("Horn")
               )}
               onItemClick={onItemClick}
               isSearching={searchTerm.trim() !== ""}

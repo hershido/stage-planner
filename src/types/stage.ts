@@ -12,6 +12,7 @@ export interface StageItem {
   width?: number;
   height?: number;
   isFlipped?: boolean;
+  zIndex?: number; // Control the stacking order of items
   textContent?: string; // Text content for text label items
   textFormatting?: {
     isBold?: boolean;
