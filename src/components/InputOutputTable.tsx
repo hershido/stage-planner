@@ -648,8 +648,8 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
           number: output.number?.toString() || "1",
         }))
       );
-    } else if (isInitialRender) {
-      // Initialize with one empty row for each section only on initial render
+    } else {
+      // Initialize with one empty row for each section
       setInputs([
         {
           id: uuidv4(),
@@ -670,7 +670,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
       ]);
     }
     setIsInitialRender(false);
-  }, [inputOutput, isInitialRender]);
+  }, [inputOutput]);
 
   // Debounced update to prevent too many calls to parent
   const debouncedOnChange = useCallback(() => {

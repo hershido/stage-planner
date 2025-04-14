@@ -23,6 +23,8 @@ import {
   updateConfiguration,
 } from "./services/configService";
 import "./App.css";
+import { v4 as uuidv4 } from "uuid";
+import { SaveChangesDialog } from "./components/SaveChangesDialog";
 
 // Define a type for our history entry
 interface HistoryEntry {
@@ -58,6 +60,7 @@ function App() {
   });
   const [isTechnicalInfoModalOpen, setIsTechnicalInfoModalOpen] =
     useState(false);
+  const [showSaveChangesDialog, setShowSaveChangesDialog] = useState(false);
 
   // Use refs instead of state for the save/load functions to prevent re-renders
   const exportConfigRef = useRef<() => void>(() => {
@@ -174,7 +177,8 @@ function App() {
       setHistoryLength(newHistory.length);
 
       // Mark as having unsaved changes unless this is the initial load
-      if (!isInitialLoad) {
+      // or we're working with a completely empty configuration
+      if (!isInitialLoad && (currentConfigId || newItems.length > 0)) {
         setHasUnsavedChanges(true);
       }
 
@@ -184,7 +188,7 @@ function App() {
         }`
       );
     },
-    [isUndoRedoAction]
+    [isUndoRedoAction, currentConfigId]
   );
 
   // Undo function
@@ -268,10 +272,60 @@ function App() {
   const handleInputOutputChange = useCallback(
     (newInputOutput: StageInputOutput) => {
       setInputOutput(newInputOutput);
-      setHasUnsavedChanges(true);
+
+      // Only mark as unsaved if we have a current config or if this isn't the initial empty state
+      if (
+        currentConfigId ||
+        newInputOutput.inputs.length > 1 ||
+        newInputOutput.outputs.length > 1 ||
+        newInputOutput.inputs.some(
+          (i) => i.name || i.channelType || i.standType
+        ) ||
+        newInputOutput.outputs.some(
+          (o) => o.name || o.channelType || o.monitorType
+        )
+      ) {
+        setHasUnsavedChanges(true);
+      }
     },
-    []
+    [currentConfigId]
   );
+
+  // Add a safeguard to reset hasUnsavedChanges after creating a new config
+  useEffect(() => {
+    if (!currentConfigId && !currentConfigName) {
+      // Give a slight delay to ensure other state updates have completed
+      const timer = setTimeout(() => {
+        setHasUnsavedChanges(false);
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentConfigId, currentConfigName]);
+
+  // Function to initialize input/output tables with one empty row each
+  const initializeEmptyInputOutput = useCallback(() => {
+    return {
+      inputs: [
+        {
+          id: uuidv4(),
+          number: "1",
+          name: "",
+          channelType: "",
+          standType: "",
+        },
+      ],
+      outputs: [
+        {
+          id: uuidv4(),
+          number: "1",
+          name: "",
+          channelType: "",
+          monitorType: "",
+        },
+      ],
+    };
+  }, []);
 
   // Handler for importing stage configuration
   const handleImport = useCallback(
@@ -294,8 +348,8 @@ function App() {
       setCurrentConfigId(configId || null);
       setHasUnsavedChanges(false);
 
-      // Set input/output data if it exists
-      setInputOutput(importedInputOutput || { inputs: [], outputs: [] });
+      // Set input/output data if it exists, otherwise initialize with empty structure with one row each
+      setInputOutput(importedInputOutput || initializeEmptyInputOutput());
 
       // Set technical info if it exists
       setTechnicalInfo(
@@ -319,7 +373,7 @@ function App() {
         updateLastAccessed(configId);
       }
     },
-    [addToHistory]
+    [addToHistory, initializeEmptyInputOutput]
   );
 
   // Handler for updating just the items from text editing
@@ -432,75 +486,35 @@ function App() {
   const handleNewConfig = useCallback(() => {
     // Check if there are unsaved changes
     if (hasUnsavedChanges) {
-      // Ask user if they want to save changes first
-      const confirmResult = window.confirm(
-        "Save changes to current configuration before creating a new one?"
-      );
-
-      if (confirmResult) {
-        // Save changes first
-        handleSave()
-          .then(() => {
-            // After saving, clear the configuration
-            setItems([]);
-            setLatestItemId(null);
-            setCurrentConfigName(null);
-            setCurrentConfigId(null);
-            setHasUnsavedChanges(false);
-            setInputOutput({ inputs: [], outputs: [] });
-            setTechnicalInfo({
-              projectTitle: "",
-              personnel: [],
-              generalInfo: "",
-              houseSystem: "",
-              mixingDesk: "",
-              monitoring: "",
-              backline: "",
-              soundCheck: "",
-            });
-
-            // Reset history
-            historyRef.current = [{ items: [], latestItemId: null }];
-            setCurrentHistoryIndex(0);
-            setHistoryLength(1);
-          })
-          .catch((error) => {
-            console.error("Error saving before clearing:", error);
-            alert(
-              "Failed to save configuration. New configuration not created."
-            );
-          });
-      } else {
-        // User chose not to save, just clear the configuration
-        setItems([]);
-        setLatestItemId(null);
-        setCurrentConfigName(null);
-        setCurrentConfigId(null);
-        setHasUnsavedChanges(false);
-        setInputOutput({ inputs: [], outputs: [] });
-        setTechnicalInfo({
-          projectTitle: "",
-          personnel: [],
-          generalInfo: "",
-          houseSystem: "",
-          mixingDesk: "",
-          monitoring: "",
-          backline: "",
-          soundCheck: "",
-        });
-
-        // Reset history
-        historyRef.current = [{ items: [], latestItemId: null }];
-        setCurrentHistoryIndex(0);
-        setHistoryLength(1);
-      }
+      setShowSaveChangesDialog(true);
     } else {
-      // No unsaved changes, just clear the configuration
+      // No unsaved changes, just clear everything
       setItems([]);
       setLatestItemId(null);
       setCurrentConfigName(null);
       setCurrentConfigId(null);
-      setInputOutput({ inputs: [], outputs: [] });
+      // Create a new empty input/output object
+      const emptyInputOutput = {
+        inputs: [
+          {
+            id: uuidv4(),
+            number: "1",
+            name: "",
+            channelType: "",
+            standType: "",
+          },
+        ],
+        outputs: [
+          {
+            id: uuidv4(),
+            number: "1",
+            name: "",
+            channelType: "",
+            monitorType: "",
+          },
+        ],
+      };
+      setInputOutput(emptyInputOutput);
       setTechnicalInfo({
         projectTitle: "",
         personnel: [],
@@ -516,8 +530,127 @@ function App() {
       historyRef.current = [{ items: [], latestItemId: null }];
       setCurrentHistoryIndex(0);
       setHistoryLength(1);
+
+      // Explicitly set hasUnsavedChanges to false after a slight delay
+      setTimeout(() => {
+        setHasUnsavedChanges(false);
+      }, 0);
     }
-  }, [handleSave, hasUnsavedChanges]);
+  }, [hasUnsavedChanges]);
+
+  const handleSaveChangesDialogClose = useCallback(
+    (choice: "yes" | "no" | "cancel") => {
+      setShowSaveChangesDialog(false);
+
+      if (choice === "yes") {
+        // Save changes first
+        handleSave()
+          .then(() => {
+            // After saving, clear everything
+            setItems([]);
+            setLatestItemId(null);
+            setCurrentConfigName(null);
+            setCurrentConfigId(null);
+            // Create a new empty input/output object
+            const emptyInputOutput = {
+              inputs: [
+                {
+                  id: uuidv4(),
+                  number: "1",
+                  name: "",
+                  channelType: "",
+                  standType: "",
+                },
+              ],
+              outputs: [
+                {
+                  id: uuidv4(),
+                  number: "1",
+                  name: "",
+                  channelType: "",
+                  monitorType: "",
+                },
+              ],
+            };
+            setInputOutput(emptyInputOutput);
+            setTechnicalInfo({
+              projectTitle: "",
+              personnel: [],
+              generalInfo: "",
+              houseSystem: "",
+              mixingDesk: "",
+              monitoring: "",
+              backline: "",
+              soundCheck: "",
+            });
+
+            // Reset history
+            historyRef.current = [{ items: [], latestItemId: null }];
+            setCurrentHistoryIndex(0);
+            setHistoryLength(1);
+
+            // Explicitly set hasUnsavedChanges to false after a slight delay
+            setTimeout(() => {
+              setHasUnsavedChanges(false);
+            }, 0);
+          })
+          .catch((error) => {
+            console.error("Error saving before clearing:", error);
+            alert("Failed to save configuration. Please try again.");
+          });
+      } else if (choice === "no") {
+        // User chose not to save, just clear everything
+        setItems([]);
+        setLatestItemId(null);
+        setCurrentConfigName(null);
+        setCurrentConfigId(null);
+        // Create a new empty input/output object
+        const emptyInputOutput = {
+          inputs: [
+            {
+              id: uuidv4(),
+              number: "1",
+              name: "",
+              channelType: "",
+              standType: "",
+            },
+          ],
+          outputs: [
+            {
+              id: uuidv4(),
+              number: "1",
+              name: "",
+              channelType: "",
+              monitorType: "",
+            },
+          ],
+        };
+        setInputOutput(emptyInputOutput);
+        setTechnicalInfo({
+          projectTitle: "",
+          personnel: [],
+          generalInfo: "",
+          houseSystem: "",
+          mixingDesk: "",
+          monitoring: "",
+          backline: "",
+          soundCheck: "",
+        });
+
+        // Reset history
+        historyRef.current = [{ items: [], latestItemId: null }];
+        setCurrentHistoryIndex(0);
+        setHistoryLength(1);
+
+        // Explicitly set hasUnsavedChanges to false after a slight delay
+        setTimeout(() => {
+          setHasUnsavedChanges(false);
+        }, 0);
+      }
+      // If choice === "cancel", do nothing
+    },
+    [handleSave]
+  );
 
   // Function to export stage to PDF
   const handleExportPDF = useCallback(() => {
@@ -768,8 +901,13 @@ function App() {
           if (technicalInfo.houseSystem)
             addSection("House System", technicalInfo.houseSystem);
 
-          if (technicalInfo.mixingDesk)
-            addSection("Mixing Desk", technicalInfo.mixingDesk);
+          if (technicalInfo.mixingDesk) {
+            // Convert to string if it's an array
+            const mixingDeskStr = Array.isArray(technicalInfo.mixingDesk)
+              ? technicalInfo.mixingDesk.join(", ")
+              : technicalInfo.mixingDesk;
+            addSection("Mixing Desk", mixingDeskStr);
+          }
 
           if (technicalInfo.monitoring)
             addSection("Monitoring", technicalInfo.monitoring);
@@ -1317,6 +1455,10 @@ function App() {
           </div>
         </div>
       </div>
+      <SaveChangesDialog
+        open={showSaveChangesDialog}
+        onClose={handleSaveChangesDialogClose}
+      />
     </DndProvider>
   );
 }

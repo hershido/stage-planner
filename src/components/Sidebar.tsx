@@ -13,6 +13,7 @@ import keyboardPlayerMale from "../assets/icons/keyboardPlayerMale.svg";
 import keyboardPlayerFemale from "../assets/icons/keyboardPlayerFemale.svg";
 import vocalistMale from "../assets/icons/vocalistMale.svg";
 import vocalistFemale from "../assets/icons/vocalistFemale.svg";
+import dragQueen from "../assets/icons/dragQueen.svg";
 import guitarAmpMarshallStack from "../assets/icons/guitarAmpMarshallStack.svg";
 import guitarAmpFenderCombo from "../assets/icons/guitarAmpFenderCombo.svg";
 import bassAmpSvtStack from "../assets/icons/bassAmpSvtStack.svg";
@@ -599,6 +600,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       icon: vocalistFemale,
       defaultWidth: 100,
       defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Drag Queen",
+      icon: dragQueen,
+      defaultWidth: 120,
+      defaultHeight: 180,
     },
 
     // Musicians - Drummers
