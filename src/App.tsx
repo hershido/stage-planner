@@ -625,13 +625,27 @@ function App() {
     mountTimeRef.current = Date.now();
   }, [currentConfigId]);
 
+  // Handler for "Save As" to create a new configuration
+  const handleSaveAs = useCallback(() => {
+    // We're using the existing modal in ConfigManager for "Save As"
+    // This just opens the modal - actual saving is handled in the ConfigManager component
+    console.log("Opening Save As modal");
+  }, []);
+
   // Handler for saving current configuration
   const handleSave = useCallback(async () => {
     if (!currentUser) return;
 
     try {
-      if (!currentConfigId || !currentConfigName) {
-        console.error("Missing configuration ID or name");
+      // If configuration hasn't been saved yet (no ID), trigger save as flow
+      if (!currentConfigId) {
+        console.log("No configuration ID yet - triggering Save As flow");
+        handleSaveAs();
+        return;
+      }
+
+      if (!currentConfigName) {
+        console.error("Missing configuration name");
         return;
       }
 
@@ -707,14 +721,8 @@ function App() {
     technicalInfo,
     hasUnsavedChanges,
     hasTitleChanged,
+    handleSaveAs,
   ]);
-
-  // Handler for "Save As" to create a new configuration
-  const handleSaveAs = useCallback(() => {
-    // We're using the existing modal in ConfigManager for "Save As"
-    // This just opens the modal - actual saving is handled in the ConfigManager component
-    console.log("Opening Save As modal");
-  }, []);
 
   // Handler for creating a new empty configuration
   const handleNewConfig = useCallback(() => {

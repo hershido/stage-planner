@@ -212,25 +212,28 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
         <span style={{ fontFamily: "sans-serif" }}>&#128194;</span>
       </button>
 
-      {/* Save button - enabled only when we have unsaved changes and a current config ID */}
+      {/* Save button - enabled if we have unsaved changes */}
       <button
-        onClick={onSave}
-        disabled={
-          !hasUnsavedChanges || !currentConfigId || saveStatus === "saving"
+        onClick={
+          currentConfigId
+            ? onSave
+            : () => {
+                if (onSaveAs) onSaveAs();
+                openSaveModal();
+              }
         }
+        disabled={!hasUnsavedChanges || saveStatus === "saving"}
         className={`header-button ${
-          !hasUnsavedChanges || !currentConfigId || saveStatus === "saving"
-            ? "disabled"
-            : ""
+          !hasUnsavedChanges || saveStatus === "saving" ? "disabled" : ""
         }`}
         title={
-          !currentConfigId
-            ? "No configuration loaded to save"
-            : !hasUnsavedChanges
+          !hasUnsavedChanges
             ? "No changes to save"
             : saveStatus === "saving"
             ? "Saving in progress..."
-            : "Save changes to current configuration"
+            : currentConfigId
+            ? "Save changes to current configuration"
+            : "Save as a new configuration"
         }
       >
         <span style={{ fontFamily: "sans-serif" }}>
