@@ -75,7 +75,7 @@ interface StorableTechnicalInfo {
   personnel: StorablePerson[];
   generalInfo: string;
   houseSystem: string;
-  mixingDesk: string;
+  mixingDesk: string | string[];
   monitoring: string;
   backline: string;
   soundCheck: string;
@@ -237,7 +237,9 @@ function sanitizeTechnicalInfoForFirestore(
     personnel: [],
     generalInfo: String(technicalInfo.generalInfo || ""),
     houseSystem: String(technicalInfo.houseSystem || ""),
-    mixingDesk: String(technicalInfo.mixingDesk || ""),
+    mixingDesk: Array.isArray(technicalInfo.mixingDesk)
+      ? technicalInfo.mixingDesk
+      : String(technicalInfo.mixingDesk || ""),
     monitoring: String(technicalInfo.monitoring || ""),
     backline: String(technicalInfo.backline || ""),
     soundCheck: String(technicalInfo.soundCheck || ""),

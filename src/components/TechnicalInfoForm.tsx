@@ -35,7 +35,8 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
   const [personnel, setPersonnel] = useState<Person[]>([]);
   const [generalInfo, setGeneralInfo] = useState("");
   const [houseSystem, setHouseSystem] = useState("");
-  const [mixingDesk, setMixingDesk] = useState("");
+  const [mixingDesk, setMixingDesk] = useState<string[]>([]);
+  const [customMixingDesk, setCustomMixingDesk] = useState("");
   const [monitoring, setMonitoring] = useState("");
   const [backline, setBackline] = useState("");
   const [soundCheck, setSoundCheck] = useState("");
@@ -53,7 +54,17 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
       setPersonnel(technicalInfo.personnel || []);
       setGeneralInfo(technicalInfo.generalInfo || "");
       setHouseSystem(technicalInfo.houseSystem || "");
-      setMixingDesk(technicalInfo.mixingDesk || "");
+
+      // Handle backward compatibility with string or string[]
+      if (Array.isArray(technicalInfo.mixingDesk)) {
+        setMixingDesk(technicalInfo.mixingDesk || []);
+      } else if (technicalInfo.mixingDesk) {
+        // Convert single string to array with one element
+        setMixingDesk([technicalInfo.mixingDesk]);
+      } else {
+        setMixingDesk([]);
+      }
+
       setMonitoring(technicalInfo.monitoring || "");
       setBackline(technicalInfo.backline || "");
       setSoundCheck(technicalInfo.soundCheck || "");
@@ -63,7 +74,8 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
       setPersonnel([]);
       setGeneralInfo("");
       setHouseSystem("");
-      setMixingDesk("");
+      setMixingDesk([]);
+      setCustomMixingDesk("");
       setMonitoring("");
       setBackline("");
       setSoundCheck("");
@@ -72,13 +84,23 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
 
   // Function to update the parent component with current data
   const updateTechnicalInfo = () => {
+    // Build the final mixingDesk value, which includes both selected options and custom input
+    const finalMixingDesks = customMixingDesk.trim()
+      ? [...mixingDesk, customMixingDesk]
+      : [...mixingDesk];
+
     // Only save if the data has actually changed
     if (
       !technicalInfo ||
       projectTitle !== technicalInfo.projectTitle ||
       generalInfo !== technicalInfo.generalInfo ||
       houseSystem !== technicalInfo.houseSystem ||
-      mixingDesk !== technicalInfo.mixingDesk ||
+      // For array, check if lengths differ or content differs
+      !Array.isArray(technicalInfo.mixingDesk) ||
+      finalMixingDesks.length !== technicalInfo.mixingDesk.length ||
+      finalMixingDesks.some(
+        (desk) => !technicalInfo.mixingDesk.includes(desk)
+      ) ||
       monitoring !== technicalInfo.monitoring ||
       backline !== technicalInfo.backline ||
       soundCheck !== technicalInfo.soundCheck ||
@@ -91,13 +113,24 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
         personnel,
         generalInfo,
         houseSystem,
-        mixingDesk,
+        mixingDesk: finalMixingDesks,
         monitoring,
         backline,
         soundCheck,
       };
 
       onSave(newTechnicalInfo);
+    }
+  };
+
+  // Handle mixing desk checkbox changes
+  const handleMixingDeskChange = (desk: string) => {
+    if (mixingDesk.includes(desk)) {
+      // Remove the desk if already selected
+      setMixingDesk(mixingDesk.filter((d) => d !== desk));
+    } else {
+      // Add the desk if not already selected
+      setMixingDesk([...mixingDesk, desk]);
     }
   };
 
@@ -117,6 +150,7 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
     generalInfo,
     houseSystem,
     mixingDesk,
+    customMixingDesk,
     monitoring,
     backline,
     soundCheck,
@@ -453,46 +487,76 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
               fontWeight: 500,
             }}
           >
-            Mixing Desk:
+            Supported Mixing Desks: (Select multiple)
           </label>
-          <select
-            id="mixingDesk"
-            value={mixingDesk}
-            onChange={(e) => setMixingDesk(e.target.value)}
+          <div
             style={{
-              width: "100%",
-              padding: "8px",
               backgroundColor: "rgba(0, 0, 0, 0.3)",
-              color: "white",
               border: "1px solid rgba(255, 255, 255, 0.3)",
               borderRadius: "4px",
+              padding: "10px",
+              maxHeight: "200px",
+              overflowY: "auto",
             }}
           >
-            <option value="">-- Select a Mixing Desk --</option>
             {MIXING_DESK_OPTIONS.map((desk) => (
-              <option key={desk} value={desk}>
-                {desk}
-              </option>
+              <div
+                key={desk}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id={`desk-${desk}`}
+                  checked={mixingDesk.includes(desk)}
+                  onChange={() => handleMixingDeskChange(desk)}
+                  style={{
+                    marginRight: "8px",
+                    cursor: "pointer",
+                  }}
+                />
+                <label
+                  htmlFor={`desk-${desk}`}
+                  style={{
+                    cursor: "pointer",
+                  }}
+                >
+                  {desk}
+                </label>
+              </div>
             ))}
-            <option value="custom">Custom / Other</option>
-          </select>
-          {mixingDesk === "custom" && (
+          </div>
+
+          <div style={{ marginTop: "10px" }}>
+            <label
+              htmlFor="customMixingDesk"
+              style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: 500,
+              }}
+            >
+              Other Mixing Desks:
+            </label>
             <input
+              id="customMixingDesk"
               type="text"
-              value={mixingDesk === "custom" ? "" : mixingDesk}
-              onChange={(e) => setMixingDesk(e.target.value)}
+              value={customMixingDesk}
+              onChange={(e) => setCustomMixingDesk(e.target.value)}
               style={{
                 width: "100%",
                 padding: "8px",
-                marginTop: "10px",
                 backgroundColor: "rgba(0, 0, 0, 0.3)",
                 color: "white",
                 border: "1px solid rgba(255, 255, 255, 0.3)",
                 borderRadius: "4px",
               }}
-              placeholder="Enter custom mixing desk"
+              placeholder="Enter additional mixing desks not in the list above"
             />
-          )}
+          </div>
         </div>
 
         <div style={{ marginBottom: "20px" }}>

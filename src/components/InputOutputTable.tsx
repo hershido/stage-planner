@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { StageInputOutput, InputRow, OutputRow } from "../types/stage";
 import { v4 as uuidv4 } from "uuid";
+import { useDrag, useDrop, DndProvider, DropTargetMonitor } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+
+// Define the item types for drag-and-drop
+const ItemTypes = {
+  INPUT_ROW: "input_row",
+  OUTPUT_ROW: "output_row",
+};
 
 interface InputOutputTableProps {
   inputOutput: StageInputOutput | undefined;
@@ -175,6 +183,435 @@ const ComboBox: React.FC<{
         </div>
       )}
     </div>
+  );
+};
+
+// Define interfaces for drag items
+interface InputDragItem {
+  index: number;
+  id: string;
+  type: string;
+}
+
+interface OutputDragItem {
+  index: number;
+  id: string;
+  type: string;
+}
+
+// Create a draggable input row component
+interface DraggableInputRowProps {
+  input: InputRow;
+  index: number;
+  id: string;
+  moveRow: (dragIndex: number, hoverIndex: number) => void;
+  handleInputChange: (
+    id: string,
+    field: keyof InputRow,
+    value: string | number
+  ) => void;
+  deleteInputRow: (id: string) => void;
+  insertInputRow: (index: number) => void;
+}
+
+const DraggableInputRow = ({
+  input,
+  index,
+  id,
+  moveRow,
+  handleInputChange,
+  deleteInputRow,
+  insertInputRow,
+}: DraggableInputRowProps) => {
+  const ref = useRef<HTMLTableRowElement>(null);
+
+  const [{ handlerId }, drop] = useDrop<
+    InputDragItem,
+    void,
+    { handlerId: string | symbol | null }
+  >({
+    accept: ItemTypes.INPUT_ROW,
+    collect(monitor) {
+      return {
+        handlerId: monitor.getHandlerId(),
+      };
+    },
+    hover(item: InputDragItem, monitor: DropTargetMonitor) {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+
+      // Get vertical middle
+      const hoverMiddleY =
+        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+
+      // Get pixels to the top
+      const hoverClientY = (clientOffset?.y || 0) - hoverBoundingRect.top;
+
+      // Only perform the move when the mouse has crossed half of the item's height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+
+      // Time to actually perform the action
+      moveRow(dragIndex, hoverIndex);
+
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      item.index = hoverIndex;
+    },
+  });
+
+  const [{ isDragging }, drag] = useDrag<
+    InputDragItem,
+    unknown,
+    { isDragging: boolean }
+  >({
+    type: ItemTypes.INPUT_ROW,
+    item: () => {
+      return { id, index, type: ItemTypes.INPUT_ROW };
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const opacity = isDragging ? 0.4 : 1;
+  drag(drop(ref));
+
+  return (
+    <tr
+      ref={ref}
+      style={{
+        backgroundColor: "transparent",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+        position: "relative",
+        opacity,
+        cursor: "move",
+      }}
+      data-handler-id={handlerId}
+    >
+      <td style={{ padding: "10px" }}>
+        <input
+          type="text"
+          value={input.number}
+          onChange={(e) => {
+            handleInputChange(input.id, "number", e.target.value);
+          }}
+          style={{
+            width: "90%",
+            padding: "6px",
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
+            borderRadius: "0",
+          }}
+        />
+      </td>
+      <td style={{ padding: "10px" }}>
+        <input
+          type="text"
+          value={input.name}
+          onChange={(e) => {
+            handleInputChange(input.id, "name", e.target.value);
+          }}
+          placeholder="Enter channel name"
+          style={{
+            width: "95%",
+            padding: "6px",
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
+            borderRadius: "0",
+          }}
+        />
+      </td>
+      <td style={{ padding: "10px" }}>
+        <ComboBox
+          value={input.channelType}
+          onChange={(value) => {
+            handleInputChange(input.id, "channelType", value);
+          }}
+          options={micDiOptions}
+          placeholder="Mic/DI type"
+        />
+      </td>
+      <td style={{ padding: "10px" }}>
+        <ComboBox
+          value={input.standType}
+          onChange={(value) => {
+            handleInputChange(input.id, "standType", value);
+          }}
+          options={standOptions}
+          placeholder="Stand type"
+        />
+      </td>
+      <td style={{ padding: "10px", textAlign: "center" }}>
+        <button
+          onClick={() => deleteInputRow(input.id)}
+          style={{
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.5)",
+            padding: "6px 12px",
+            borderRadius: "0",
+            cursor: "pointer",
+            transition: "background-color 0.2s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "32px",
+            height: "32px",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+          title="Delete row"
+        >
+          🗑️
+        </button>
+      </td>
+      <div
+        className="insert-row-button"
+        onClick={() => insertInputRow(index)}
+        title="Insert row below"
+      >
+        <svg viewBox="0 0 24 24">
+          <line x1="12" y1="6" x2="12" y2="18" />
+          <line x1="6" y1="12" x2="18" y2="12" />
+        </svg>
+      </div>
+    </tr>
+  );
+};
+
+// Create a draggable output row component
+interface DraggableOutputRowProps {
+  output: OutputRow;
+  index: number;
+  id: string;
+  moveRow: (dragIndex: number, hoverIndex: number) => void;
+  handleOutputChange: (
+    id: string,
+    field: keyof OutputRow,
+    value: string | number
+  ) => void;
+  deleteOutputRow: (id: string) => void;
+  insertOutputRow: (index: number) => void;
+}
+
+const DraggableOutputRow = ({
+  output,
+  index,
+  id,
+  moveRow,
+  handleOutputChange,
+  deleteOutputRow,
+  insertOutputRow,
+}: DraggableOutputRowProps) => {
+  const ref = useRef<HTMLTableRowElement>(null);
+
+  const [{ handlerId }, drop] = useDrop<
+    OutputDragItem,
+    void,
+    { handlerId: string | symbol | null }
+  >({
+    accept: ItemTypes.OUTPUT_ROW,
+    collect(monitor) {
+      return {
+        handlerId: monitor.getHandlerId(),
+      };
+    },
+    hover(item: OutputDragItem, monitor: DropTargetMonitor) {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+
+      // Get vertical middle
+      const hoverMiddleY =
+        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+
+      // Get pixels to the top
+      const hoverClientY = (clientOffset?.y || 0) - hoverBoundingRect.top;
+
+      // Only perform the move when the mouse has crossed half of the item's height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+
+      // Time to actually perform the action
+      moveRow(dragIndex, hoverIndex);
+
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      item.index = hoverIndex;
+    },
+  });
+
+  const [{ isDragging }, drag] = useDrag<
+    OutputDragItem,
+    unknown,
+    { isDragging: boolean }
+  >({
+    type: ItemTypes.OUTPUT_ROW,
+    item: () => {
+      return { id, index, type: ItemTypes.OUTPUT_ROW };
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const opacity = isDragging ? 0.4 : 1;
+  drag(drop(ref));
+
+  return (
+    <tr
+      ref={ref}
+      style={{
+        backgroundColor: "transparent",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+        position: "relative",
+        opacity,
+        cursor: "move",
+      }}
+      data-handler-id={handlerId}
+    >
+      <td style={{ padding: "10px" }}>
+        <input
+          type="text"
+          value={output.number}
+          onChange={(e) => {
+            handleOutputChange(output.id, "number", e.target.value);
+          }}
+          style={{
+            width: "90%",
+            padding: "6px",
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
+            borderRadius: "0",
+          }}
+        />
+      </td>
+      <td style={{ padding: "10px" }}>
+        <input
+          type="text"
+          value={output.name}
+          onChange={(e) => {
+            handleOutputChange(output.id, "name", e.target.value);
+          }}
+          placeholder="Enter channel name"
+          style={{
+            width: "95%",
+            padding: "6px",
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
+            borderRadius: "0",
+          }}
+        />
+      </td>
+      <td style={{ padding: "10px" }}>
+        <ComboBox
+          value={output.monitorType}
+          onChange={(value) => {
+            handleOutputChange(output.id, "monitorType", value);
+          }}
+          options={monitorOptions}
+          placeholder="Monitor type"
+        />
+      </td>
+      <td style={{ padding: "10px", textAlign: "center" }}>
+        <button
+          onClick={() => deleteOutputRow(output.id)}
+          style={{
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.5)",
+            padding: "6px 12px",
+            borderRadius: "0",
+            cursor: "pointer",
+            transition: "background-color 0.2s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "32px",
+            height: "32px",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+          title="Delete row"
+        >
+          🗑️
+        </button>
+      </td>
+      <div
+        className="insert-row-button"
+        onClick={() => insertOutputRow(index)}
+        title="Insert row below"
+      >
+        <svg viewBox="0 0 24 24">
+          <line x1="12" y1="6" x2="12" y2="18" />
+          <line x1="6" y1="12" x2="18" y2="12" />
+        </svg>
+      </div>
+    </tr>
   );
 };
 
@@ -391,409 +828,273 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
     });
   };
 
+  // Move input row function for drag-and-drop reordering
+  const moveInputRow = useCallback((dragIndex: number, hoverIndex: number) => {
+    setInputs((prevInputs) => {
+      const result = [...prevInputs];
+      // Remove the dragged item
+      const [removed] = result.splice(dragIndex, 1);
+      // Insert it at the new position
+      result.splice(hoverIndex, 0, removed);
+
+      // Optional: Update row numbers if you want to maintain sequential numbering
+      // return result.map((item, index) => ({
+      //   ...item,
+      //   number: String(index + 1),
+      // }));
+
+      return result;
+    });
+  }, []);
+
+  // Move output row function for drag-and-drop reordering
+  const moveOutputRow = useCallback((dragIndex: number, hoverIndex: number) => {
+    setOutputs((prevOutputs) => {
+      const result = [...prevOutputs];
+      // Remove the dragged item
+      const [removed] = result.splice(dragIndex, 1);
+      // Insert it at the new position
+      result.splice(hoverIndex, 0, removed);
+
+      // Optional: Update row numbers if you want to maintain sequential numbering
+      // return result.map((item, index) => ({
+      //   ...item,
+      //   number: String(index + 1),
+      // }));
+
+      return result;
+    });
+  }, []);
+
   return (
-    <div
-      style={{
-        backgroundColor: "transparent",
-        color: "white",
-        padding: "20px",
-        borderRadius: "0",
-        boxShadow: "none",
-      }}
-    >
-      <style>
-        {`
-          .input-output-table tr:hover .insert-row-button {
-            opacity: 1;
-          }
-          
-          .input-output-table tr .insert-row-button {
-            opacity: 0;
-          }
-          
-          .insert-row-button {
-            position: absolute;
-            bottom: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #0074e8, #0055cc);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            color: white;
-            box-shadow: 
-              0 2px 4px rgba(0,0,0,0.3),
-              inset 0 1px 1px rgba(255,255,255,0.4),
-              inset 0 -1px 1px rgba(0,0,0,0.3);
-            transition: transform 0.1s, box-shadow 0.1s;
-          }
-          
-          .insert-row-button svg {
-            width: 12px;
-            height: 12px;
-            stroke: white;
-            stroke-width: 3;
-          }
-          
-          .insert-row-button:hover {
-            transform: translateX(-50%) scale(1.05);
-            box-shadow: 
-              0 3px 6px rgba(0,0,0,0.4),
-              inset 0 1px 1px rgba(255,255,255,0.4),
-              inset 0 -1px 1px rgba(0,0,0,0.3);
-          }
-          
-          .insert-row-button:active {
-            transform: translateX(-50%) scale(0.98);
-            background: linear-gradient(145deg, #0055cc, #0074e8);
-            box-shadow: 
-              0 1px 2px rgba(0,0,0,0.4),
-              inset 0 1px 1px rgba(0,0,0,0.3);
-          }
-        `}
-      </style>
-      <h2 style={{ color: "white", marginBottom: "16px", fontWeight: 300 }}>
-        Stage Input List
-      </h2>
-      <table
-        className="input-output-table"
-        style={{
-          tableLayout: "fixed",
-          width: "100%",
-          borderCollapse: "collapse",
-          marginBottom: "20px",
-          border: "1px solid rgba(255, 255, 255, 0.5)",
-        }}
-      >
-        <colgroup>
-          <col style={{ width: "15%" }} /> {/* Input # */}
-          <col style={{ width: "30%" }} /> {/* Channel Name */}
-          <col style={{ width: "20%" }} /> {/* Mic/DI Type */}
-          <col style={{ width: "20%" }} /> {/* Stand Type */}
-          <col style={{ width: "15%" }} /> {/* Actions */}
-        </colgroup>
-        <thead>
-          <tr
-            style={{
-              borderBottom: "1px solid rgba(255, 255, 255, 0.5)",
-              textAlign: "left",
-            }}
-          >
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Input #
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Channel Name
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Mic/DI Type
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Stand Type
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {inputs.map((input, index) => (
-            <tr
-              key={index}
-              style={{
-                backgroundColor: "transparent",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
-                position: "relative",
-              }}
-            >
-              <td style={{ padding: "10px" }}>
-                <input
-                  type="text"
-                  value={input.number}
-                  onChange={(e) => {
-                    handleInputChange(input.id, "number", e.target.value);
-                  }}
-                  style={{
-                    width: "90%",
-                    padding: "6px",
-                    backgroundColor: "transparent",
-                    color: "white",
-                    border: "1px solid rgba(255, 255, 255, 0.3)",
-                    borderRadius: "0",
-                  }}
-                />
-              </td>
-              <td style={{ padding: "10px" }}>
-                <input
-                  type="text"
-                  value={input.name}
-                  onChange={(e) => {
-                    handleInputChange(input.id, "name", e.target.value);
-                  }}
-                  placeholder="Enter channel name"
-                  style={{
-                    width: "95%",
-                    padding: "6px",
-                    backgroundColor: "transparent",
-                    color: "white",
-                    border: "1px solid rgba(255, 255, 255, 0.3)",
-                    borderRadius: "0",
-                  }}
-                />
-              </td>
-              <td style={{ padding: "10px" }}>
-                <ComboBox
-                  value={input.channelType}
-                  onChange={(value) => {
-                    handleInputChange(input.id, "channelType", value);
-                  }}
-                  options={micDiOptions}
-                  placeholder="Mic/DI type"
-                />
-              </td>
-              <td style={{ padding: "10px" }}>
-                <ComboBox
-                  value={input.standType}
-                  onChange={(value) => {
-                    handleInputChange(input.id, "standType", value);
-                  }}
-                  options={standOptions}
-                  placeholder="Stand type"
-                />
-              </td>
-              <td style={{ padding: "10px", textAlign: "center" }}>
-                <button
-                  onClick={() => deleteInputRow(input.id)}
-                  style={{
-                    backgroundColor: "transparent",
-                    color: "white",
-                    border: "1px solid rgba(255, 255, 255, 0.5)",
-                    padding: "6px 12px",
-                    borderRadius: "0",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "32px",
-                    height: "32px",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255, 255, 255, 0.1)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  title="Delete row"
-                >
-                  🗑️
-                </button>
-              </td>
-              <div
-                className="insert-row-button"
-                onClick={() => insertInputRow(index)}
-                title="Insert row below"
-              >
-                <svg viewBox="0 0 24 24">
-                  <line x1="12" y1="6" x2="12" y2="18" />
-                  <line x1="6" y1="12" x2="18" y2="12" />
-                </svg>
-              </div>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <button
-        onClick={addInputRow}
+    <DndProvider backend={HTML5Backend}>
+      <div
         style={{
           backgroundColor: "transparent",
           color: "white",
-          border: "1px solid rgba(255, 255, 255, 0.5)",
-          padding: "8px 16px",
+          padding: "20px",
           borderRadius: "0",
-          fontWeight: "normal",
-          cursor: "pointer",
-          marginBottom: "30px",
-          transition: "background-color 0.2s",
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.backgroundColor = "transparent";
+          boxShadow: "none",
         }}
       >
-        Add Input
-      </button>
-
-      <h2 style={{ color: "white", marginBottom: "16px", fontWeight: 300 }}>
-        Stage Output List
-      </h2>
-      <table
-        className="input-output-table"
-        style={{
-          tableLayout: "fixed",
-          width: "100%",
-          borderCollapse: "collapse",
-          border: "1px solid rgba(255, 255, 255, 0.5)",
-        }}
-      >
-        <colgroup>
-          <col style={{ width: "15%" }} /> {/* Output # */}
-          <col style={{ width: "40%" }} /> {/* Channel Name */}
-          <col style={{ width: "30%" }} /> {/* Monitor Type */}
-          <col style={{ width: "15%" }} /> {/* Actions */}
-        </colgroup>
-        <thead>
-          <tr
-            style={{
-              borderBottom: "1px solid rgba(255, 255, 255, 0.5)",
-              textAlign: "left",
-            }}
-          >
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Output #
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Channel Name
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Monitor Type
-            </th>
-            <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {outputs.map((output, index) => (
+        <style>
+          {`
+            .input-output-table tr:hover .insert-row-button {
+              opacity: 1;
+            }
+            
+            .input-output-table tr .insert-row-button {
+              opacity: 0;
+            }
+            
+            .insert-row-button {
+              position: absolute;
+              bottom: -12px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              background: linear-gradient(145deg, #0074e8, #0055cc);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              z-index: 10;
+              color: white;
+              box-shadow: 
+                0 2px 4px rgba(0,0,0,0.3),
+                inset 0 1px 1px rgba(255,255,255,0.4),
+                inset 0 -1px 1px rgba(0,0,0,0.3);
+              transition: transform 0.1s, box-shadow 0.1s;
+            }
+            
+            .insert-row-button svg {
+              width: 12px;
+              height: 12px;
+              stroke: white;
+              stroke-width: 3;
+            }
+            
+            .insert-row-button:hover {
+              transform: translateX(-50%) scale(1.05);
+              box-shadow: 
+                0 3px 6px rgba(0,0,0,0.4),
+                inset 0 1px 1px rgba(255,255,255,0.4),
+                inset 0 -1px 1px rgba(0,0,0,0.3);
+            }
+            
+            .insert-row-button:active {
+              transform: translateX(-50%) scale(0.98);
+              background: linear-gradient(145deg, #0055cc, #0074e8);
+              box-shadow: 
+                0 1px 2px rgba(0,0,0,0.4),
+                inset 0 1px 1px rgba(0,0,0,0.3);
+            }
+          `}
+        </style>
+        <h2 style={{ color: "white", marginBottom: "16px", fontWeight: 300 }}>
+          Stage Input List
+        </h2>
+        <table
+          className="input-output-table"
+          style={{
+            tableLayout: "fixed",
+            width: "100%",
+            borderCollapse: "collapse",
+            marginBottom: "20px",
+            border: "1px solid rgba(255, 255, 255, 0.5)",
+          }}
+        >
+          <colgroup>
+            <col style={{ width: "15%" }} /> {/* Input # */}
+            <col style={{ width: "30%" }} /> {/* Channel Name */}
+            <col style={{ width: "20%" }} /> {/* Mic/DI Type */}
+            <col style={{ width: "20%" }} /> {/* Stand Type */}
+            <col style={{ width: "15%" }} /> {/* Actions */}
+          </colgroup>
+          <thead>
             <tr
-              key={index}
               style={{
-                backgroundColor: "transparent",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
-                position: "relative",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.5)",
+                textAlign: "left",
               }}
             >
-              <td style={{ padding: "10px" }}>
-                <input
-                  type="text"
-                  value={output.number}
-                  onChange={(e) => {
-                    handleOutputChange(output.id, "number", e.target.value);
-                  }}
-                  style={{
-                    width: "90%",
-                    padding: "6px",
-                    backgroundColor: "transparent",
-                    color: "white",
-                    border: "1px solid rgba(255, 255, 255, 0.3)",
-                    borderRadius: "0",
-                  }}
-                />
-              </td>
-              <td style={{ padding: "10px" }}>
-                <input
-                  type="text"
-                  value={output.name}
-                  onChange={(e) => {
-                    handleOutputChange(output.id, "name", e.target.value);
-                  }}
-                  placeholder="Enter channel name"
-                  style={{
-                    width: "95%",
-                    padding: "6px",
-                    backgroundColor: "transparent",
-                    color: "white",
-                    border: "1px solid rgba(255, 255, 255, 0.3)",
-                    borderRadius: "0",
-                  }}
-                />
-              </td>
-              <td style={{ padding: "10px" }}>
-                <ComboBox
-                  value={output.channelType}
-                  onChange={(value) => {
-                    handleOutputChange(output.id, "channelType", value);
-                  }}
-                  options={monitorOptions}
-                  placeholder="Monitor type"
-                />
-              </td>
-              <td style={{ padding: "10px", textAlign: "center" }}>
-                <button
-                  onClick={() => deleteOutputRow(output.id)}
-                  style={{
-                    backgroundColor: "transparent",
-                    color: "white",
-                    border: "1px solid rgba(255, 255, 255, 0.5)",
-                    padding: "6px 12px",
-                    borderRadius: "0",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "32px",
-                    height: "32px",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255, 255, 255, 0.1)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  title="Delete row"
-                >
-                  🗑️
-                </button>
-              </td>
-              <div
-                className="insert-row-button"
-                onClick={() => insertOutputRow(index)}
-                title="Insert row below"
-              >
-                <svg viewBox="0 0 24 24">
-                  <line x1="12" y1="6" x2="12" y2="18" />
-                  <line x1="6" y1="12" x2="18" y2="12" />
-                </svg>
-              </div>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Input #
+              </th>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Channel Name
+              </th>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Mic/DI Type
+              </th>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Stand Type
+              </th>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Actions
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {inputs.map((input, index) => (
+              <DraggableInputRow
+                key={input.id}
+                input={input}
+                index={index}
+                id={input.id}
+                moveRow={moveInputRow}
+                handleInputChange={handleInputChange}
+                deleteInputRow={deleteInputRow}
+                insertInputRow={insertInputRow}
+              />
+            ))}
+          </tbody>
+        </table>
 
-      <button
-        onClick={addOutputRow}
-        style={{
-          backgroundColor: "transparent",
-          color: "white",
-          border: "1px solid rgba(255, 255, 255, 0.5)",
-          padding: "8px 16px",
-          borderRadius: "0",
-          fontWeight: "normal",
-          cursor: "pointer",
-          marginTop: "16px",
-          transition: "background-color 0.2s",
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.backgroundColor = "transparent";
-        }}
-      >
-        Add Output
-      </button>
-    </div>
+        <button
+          onClick={addInputRow}
+          style={{
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.5)",
+            padding: "8px 16px",
+            borderRadius: "0",
+            fontWeight: "normal",
+            cursor: "pointer",
+            marginBottom: "30px",
+            transition: "background-color 0.2s",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          Add Input
+        </button>
+
+        <h2 style={{ color: "white", marginBottom: "16px", fontWeight: 300 }}>
+          Stage Output List
+        </h2>
+        <table
+          className="input-output-table"
+          style={{
+            tableLayout: "fixed",
+            width: "100%",
+            borderCollapse: "collapse",
+            border: "1px solid rgba(255, 255, 255, 0.5)",
+          }}
+        >
+          <colgroup>
+            <col style={{ width: "15%" }} /> {/* Output # */}
+            <col style={{ width: "40%" }} /> {/* Channel Name */}
+            <col style={{ width: "30%" }} /> {/* Monitor Type */}
+            <col style={{ width: "15%" }} /> {/* Actions */}
+          </colgroup>
+          <thead>
+            <tr
+              style={{
+                borderBottom: "1px solid rgba(255, 255, 255, 0.5)",
+                textAlign: "left",
+              }}
+            >
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Output #
+              </th>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Channel Name
+              </th>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Monitor Type
+              </th>
+              <th style={{ padding: "12px", color: "white", fontWeight: 400 }}>
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {outputs.map((output, index) => (
+              <DraggableOutputRow
+                key={output.id}
+                output={output}
+                index={index}
+                id={output.id}
+                moveRow={moveOutputRow}
+                handleOutputChange={handleOutputChange}
+                deleteOutputRow={deleteOutputRow}
+                insertOutputRow={insertOutputRow}
+              />
+            ))}
+          </tbody>
+        </table>
+
+        <button
+          onClick={addOutputRow}
+          style={{
+            backgroundColor: "transparent",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.5)",
+            padding: "8px 16px",
+            borderRadius: "0",
+            fontWeight: "normal",
+            cursor: "pointer",
+            marginTop: "16px",
+            transition: "background-color 0.2s",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          Add Output
+        </button>
+      </div>
+    </DndProvider>
   );
 };
 

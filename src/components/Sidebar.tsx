@@ -25,6 +25,7 @@ import iemMonitor from "../assets/icons/iemMonitor.svg";
 import wedgeMonitor from "../assets/icons/wedgeMonitor.svg";
 import acousticGuitarOnStand from "../assets/icons/acousticGuitarOnStand.svg";
 import bassGuitarOnStand from "../assets/icons/bassGuitarOnStand.svg";
+import electricGuitarOnStand from "../assets/icons/electricGuitarOnStand.svg";
 import laptopWithAudioInterfaceOnStand from "../assets/icons/laptopWithAudioInterfaceOnStand.svg";
 import drummerMixer from "../assets/icons/drummerMixer.svg";
 import textLabel from "../assets/icons/textLabel.svg";
@@ -395,6 +396,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       type: "instruments",
       name: "Bass Guitar On Stand",
       icon: bassGuitarOnStand,
+      defaultWidth: 60,
+      defaultHeight: 150,
+    },
+    {
+      type: "instruments",
+      name: "Electric Guitar On Stand",
+      icon: electricGuitarOnStand,
       defaultWidth: 60,
       defaultHeight: 150,
     },

@@ -55,7 +55,7 @@ export interface TechnicalInfo {
   personnel: Person[];
   generalInfo: string;
   houseSystem: string;
-  mixingDesk: string;
+  mixingDesk: string[] | string;
   monitoring: string;
   backline: string;
   soundCheck: string;
