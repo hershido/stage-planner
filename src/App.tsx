@@ -84,6 +84,9 @@ function App() {
   // Add a ref to track component mount time
   const mountTimeRef = useRef(Date.now());
 
+  // Add state to track if we've made a title change
+  const [hasTitleChanged, setHasTitleChanged] = useState(false);
+
   // Function to handle technical info changes
   const handleTechnicalInfoChange = useCallback(
     (newTechnicalInfo: TechnicalInfo) => {
@@ -439,6 +442,7 @@ function App() {
         importedItems.length,
         "items"
       );
+      console.log("Configuration name being loaded:", configName);
 
       // Set the loading flag to true
       isLoadingConfigRef.current = true;
@@ -446,9 +450,14 @@ function App() {
       // First reset hasUnsavedChanges to avoid any flickering
       setHasUnsavedChanges(false);
 
+      // Reset title changed flag when loading a configuration
+      setHasTitleChanged(false);
+
       // Replace current items with imported ones
       setItems(importedItems);
       setLatestItemId(null); // Reset latest ID since we're loading a new config
+
+      // Set the configuration name and ID
       setCurrentConfigName(configName);
       setCurrentConfigId(configId || null);
 
@@ -480,12 +489,14 @@ function App() {
       // Reset hasUnsavedChanges after a longer delay to ensure all state updates have completed
       setTimeout(() => {
         setHasUnsavedChanges(false);
-        console.log("Reset hasUnsavedChanges after import", configName);
+        setHasTitleChanged(false); // Also reset title changed flag after a delay
+        console.log("Reset hasUnsavedChanges after import");
+        console.log("Current config name after loading:", configName);
 
         // Keep loading flag active longer
         setTimeout(() => {
           isLoadingConfigRef.current = false;
-          console.log("Reset loading flag after import", configName);
+          console.log("Reset loading flag after import");
         }, 1000);
       }, 500);
     },
@@ -558,13 +569,23 @@ function App() {
     const timer = setTimeout(() => {
       if (currentConfigId) {
         // If we have a configuration loaded, reset unsaved changes flag
-        console.log("Resetting unsaved changes flag for", currentConfigName);
-        setHasUnsavedChanges(false);
+        // but only if we're not actively editing the title and haven't just changed the title
+        if (
+          !document.activeElement?.tagName.toLowerCase().includes("input") &&
+          !hasTitleChanged
+        ) {
+          console.log("Resetting unsaved changes flag for", currentConfigName);
+          setHasUnsavedChanges(false);
+        } else {
+          console.log(
+            "Not resetting unsaved changes flag - user is editing input or title was changed"
+          );
+        }
       }
     }, 1000); // Use a longer timeout to ensure all state changes have settled
 
     return () => clearTimeout(timer);
-  }, [currentConfigId, currentConfigName]);
+  }, [currentConfigId, currentConfigName, hasTitleChanged]);
 
   // Add an effect that runs on every render to check for unwanted changes
   useEffect(() => {
@@ -577,8 +598,13 @@ function App() {
       // If this happens immediately after loading, reset the flag
       const timer = setTimeout(() => {
         const timeSinceMount = Date.now() - mountTimeRef.current;
-        // If this happens within 2 seconds of mount or immediately after setting currentConfigId
-        if (timeSinceMount < 2000) {
+        // Only reset if this happens within 2 seconds of mount and the name hasn't been manually changed
+        if (
+          timeSinceMount < 2000 &&
+          currentConfigName !== "Untitled" &&
+          !document.activeElement?.tagName.toLowerCase().includes("input") &&
+          !hasTitleChanged
+        ) {
           console.log(
             "Detected false positive for unsaved changes - resetting flag"
           );
@@ -588,7 +614,7 @@ function App() {
 
       return () => clearTimeout(timer);
     }
-  }, [currentConfigId, hasUnsavedChanges]);
+  }, [currentConfigId, hasUnsavedChanges, currentConfigName, hasTitleChanged]);
 
   // Reset the mount time ref on each load
   useEffect(() => {
@@ -605,19 +631,47 @@ function App() {
         return;
       }
 
+      // Only proceed with save if we actually have unsaved changes
+      if (!hasUnsavedChanges && !hasTitleChanged) {
+        console.log("No changes to save");
+        return;
+      }
+
       console.log(`Saving configuration '${currentConfigName}'...`);
       console.log("Current items state being saved:", items);
+      console.log("Current name being saved:", currentConfigName);
 
-      // Explicitly ensure we have the latest state of items
+      // Set loading flag to prevent unwanted resets during save
+      isLoadingConfigRef.current = true;
+
+      // Explicitly ensure we have the latest state of items, including the current name
       await updateConfiguration(
         currentConfigId,
         items,
         inputOutput,
-        technicalInfo
+        technicalInfo,
+        currentConfigName // Pass the current name to be updated in the datastore
       );
+
+      // Reset unsaved changes flag
       setHasUnsavedChanges(false);
+
+      // Reset title changed flag
+      setHasTitleChanged(false);
+
+      // Show success message with the updated name
       alert(`Configuration '${currentConfigName}' updated successfully!`);
+
+      // Log the updated name for debugging
+      console.log(`Configuration saved with name: ${currentConfigName}`);
+
+      // Reset loading flag after a delay to ensure all state updates complete
+      setTimeout(() => {
+        isLoadingConfigRef.current = false;
+      }, 100);
     } catch (error) {
+      // Reset loading flag on error
+      isLoadingConfigRef.current = false;
       console.error("Error saving configuration:", error);
       alert("Failed to save configuration. Please try again.");
     }
@@ -628,6 +682,8 @@ function App() {
     items,
     inputOutput,
     technicalInfo,
+    hasUnsavedChanges,
+    hasTitleChanged,
   ]);
 
   // Handler for "Save As" to create a new configuration
@@ -640,7 +696,7 @@ function App() {
   // Handler for creating a new empty configuration
   const handleNewConfig = useCallback(() => {
     // Check if there are unsaved changes
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges || hasTitleChanged) {
       setShowSaveChangesDialog(true);
     } else {
       // No unsaved changes, just clear everything
@@ -689,9 +745,10 @@ function App() {
       // Explicitly set hasUnsavedChanges to false after a slight delay
       setTimeout(() => {
         setHasUnsavedChanges(false);
+        setHasTitleChanged(false);
       }, 0);
     }
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, hasTitleChanged]);
 
   const handleSaveChangesDialogClose = useCallback(
     (choice: "yes" | "no" | "cancel") => {
@@ -747,6 +804,7 @@ function App() {
             // Explicitly set hasUnsavedChanges to false after a slight delay
             setTimeout(() => {
               setHasUnsavedChanges(false);
+              setHasTitleChanged(false);
             }, 0);
           })
           .catch((error) => {
@@ -800,6 +858,7 @@ function App() {
         // Explicitly set hasUnsavedChanges to false after a slight delay
         setTimeout(() => {
           setHasUnsavedChanges(false);
+          setHasTitleChanged(false);
         }, 0);
       }
       // If choice === "cancel", do nothing
@@ -1459,6 +1518,42 @@ function App() {
     setLatestItemId(null);
   }, []);
 
+  // Handler for title changes
+  const handleTitleChange = useCallback(
+    (newTitle: string) => {
+      // Only do something if the title actually changed
+      if (newTitle !== currentConfigName) {
+        console.log(
+          `Changing title from "${currentConfigName}" to "${newTitle}"`
+        );
+
+        // Update the title in the UI
+        setCurrentConfigName(newTitle);
+
+        // Explicitly mark as having unsaved changes to show the asterisk
+        // This is IMPORTANT to ensure the save button is enabled
+        setHasUnsavedChanges(true);
+
+        // Set flag that we've changed the title
+        setHasTitleChanged(true);
+
+        // Log the change
+        console.log("Setting hasUnsavedChanges to TRUE after title change");
+
+        // If we have a configId, log that this will be updated on save
+        if (currentConfigId) {
+          console.log(
+            `Title change will be saved to configuration #${currentConfigId} on next save`
+          );
+        }
+
+        // Set mount time to a large value to prevent auto-reset of changes flag
+        mountTimeRef.current = Date.now() - 10000; // 10 seconds ago
+      }
+    },
+    [currentConfigName, currentConfigId]
+  );
+
   // Show loading state
   if (loading) {
     return (
@@ -1522,6 +1617,7 @@ function App() {
           currentHistoryIndex={currentHistoryIndex}
           historyLength={historyLength}
           openTechnicalInfo={() => setIsTechnicalInfoModalOpen(true)}
+          onTitleChange={handleTitleChange}
         >
           <UserMenu />
         </Header>

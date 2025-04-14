@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState, useEffect } from "react";
 import ConfigManager from "./ConfigManager";
 import { StageItem, StageInputOutput, TechnicalInfo } from "../types/stage";
 import pdfDownloadIcon from "../assets/icons/pdfDownload.svg";
@@ -26,6 +26,7 @@ interface HeaderProps {
   currentHistoryIndex: number;
   historyLength: number;
   openTechnicalInfo: () => void;
+  onTitleChange?: (newTitle: string) => void;
   children?: ReactNode;
 }
 
@@ -46,16 +47,113 @@ const Header: React.FC<HeaderProps> = ({
   currentHistoryIndex,
   historyLength,
   openTechnicalInfo,
+  onTitleChange,
   children,
 }) => {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleText, setTitleText] = useState(currentConfigName || "");
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setTitleText(currentConfigName || "");
+  }, [currentConfigName]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitleText(e.target.value);
+  };
+
+  const handleTitleSubmit = () => {
+    if (onTitleChange && titleText.trim()) {
+      onTitleChange(titleText.trim());
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleTitleSubmit();
+    } else if (e.key === "Escape") {
+      setTitleText(currentConfigName || ""); // Reset to original
+      setIsEditingTitle(false);
+    }
+  };
+
   return (
     <div className="app-header">
       {/* Current configuration name display */}
-      <div className="config-title">
+      <div
+        className="config-title"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
         {currentConfigName && (
-          <h1>
-            {hasUnsavedChanges ? `${currentConfigName} *` : currentConfigName}
-          </h1>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+            }}
+          >
+            {isEditingTitle ? (
+              <input
+                type="text"
+                value={titleText}
+                onChange={handleTitleChange}
+                onBlur={handleTitleSubmit}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                style={{
+                  fontSize: "2rem",
+                  fontWeight: "bold",
+                  background: "transparent",
+                  border: "1px solid #0074e8",
+                  borderRadius: "4px",
+                  padding: "0 10px",
+                  color: "inherit",
+                  width: "100%",
+                  minWidth: "200px",
+                }}
+              />
+            ) : (
+              <>
+                <h1>
+                  {hasUnsavedChanges
+                    ? `${currentConfigName} *`
+                    : currentConfigName}
+                </h1>
+                {(isHovering || isEditingTitle) && onTitleChange && (
+                  <button
+                    onClick={() => setIsEditingTitle(true)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      marginLeft: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "5px",
+                    }}
+                    title="Edit title"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         )}
       </div>
 

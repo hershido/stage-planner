@@ -8,6 +8,7 @@ import {
   where,
   Timestamp,
   setDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import {
@@ -529,7 +530,8 @@ export const updateConfiguration = async (
   configId: string,
   items: StageItem[],
   inputOutput?: StageInputOutput,
-  technicalInfo?: TechnicalInfo
+  technicalInfo?: TechnicalInfo,
+  configName?: string
 ): Promise<void> => {
   try {
     if (!items || !items.length) {
@@ -537,8 +539,37 @@ export const updateConfiguration = async (
     }
 
     console.log("Starting update configuration with items:", items.length);
+    if (configName) {
+      console.log("Will update configuration name to:", configName);
+    }
 
     const configRef = doc(db, "stage-configs", configId);
+
+    // First, get the existing configuration to compare names
+    let needsNameUpdate = false;
+    if (configName) {
+      try {
+        const docSnap = await getDoc(configRef);
+        if (docSnap.exists()) {
+          const existingData = docSnap.data() as FirestoreStageConfig;
+          if (existingData.name !== configName) {
+            console.log(
+              `Changing name from "${existingData.name}" to "${configName}"`
+            );
+            needsNameUpdate = true;
+          } else {
+            console.log(
+              "Name unchanged, keeping existing name:",
+              existingData.name
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error checking existing config:", error);
+        // Continue with update anyway
+      }
+    }
+
     const sanitizedItems = sanitizeForFirestore(items);
     console.log("Sanitized items:", sanitizedItems);
 
@@ -552,6 +583,7 @@ export const updateConfiguration = async (
       inputOutput?: StorableInputOutput;
       technicalInfo?: StorableTechnicalInfo;
       lastAccessed: Timestamp;
+      name?: string;
     } = {
       items: sanitizedItems,
       lastAccessed: Timestamp.now(),
@@ -566,6 +598,12 @@ export const updateConfiguration = async (
       updateData.technicalInfo = sanitizedTechnicalInfo;
     }
 
+    // Add name to update data if provided and different from existing
+    if (configName) {
+      updateData.name = configName;
+      console.log("Added name to update data:", configName);
+    }
+
     console.log(
       "Final update data to be sent to Firestore:",
       JSON.stringify(
@@ -578,6 +616,9 @@ export const updateConfiguration = async (
     await setDoc(configRef, updateData, { merge: true });
 
     console.log(`Configuration ${configId} updated successfully`);
+    if (needsNameUpdate) {
+      console.log(`Configuration name updated from previous to: ${configName}`);
+    }
   } catch (error) {
     console.error("Error updating configuration:", error);
     if (error instanceof Error) {
