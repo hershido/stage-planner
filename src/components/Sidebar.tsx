@@ -24,6 +24,7 @@ import stereoDIBox from "../assets/icons/stereoDIBox.svg";
 import iemMonitor from "../assets/icons/iemMonitor.svg";
 import wedgeMonitor from "../assets/icons/wedgeMonitor.svg";
 import acousticGuitarOnStand from "../assets/icons/acousticGuitarOnStand.svg";
+import bassGuitarOnStand from "../assets/icons/bassGuitarOnStand.svg";
 import laptopWithAudioInterfaceOnStand from "../assets/icons/laptopWithAudioInterfaceOnStand.svg";
 import drummerMixer from "../assets/icons/drummerMixer.svg";
 import textLabel from "../assets/icons/textLabel.svg";
@@ -389,6 +390,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       icon: acousticGuitarOnStand,
       defaultWidth: 50,
       defaultHeight: 120,
+    },
+    {
+      type: "instruments",
+      name: "Bass Guitar On Stand",
+      icon: bassGuitarOnStand,
+      defaultWidth: 60,
+      defaultHeight: 150,
     },
 
     // Equipment - Speakers

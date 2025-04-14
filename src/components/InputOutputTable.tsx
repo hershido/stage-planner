@@ -9,24 +9,25 @@ interface InputOutputTableProps {
 
 // Predefined options for MIC/DI type dropdown
 const micDiOptions = [
+  "Shure SM58",
+  "Shure SM57",
   "DI",
   "Stereo DI",
-  "SM57",
-  "SM58",
-  "SM81",
-  "Beta 52",
-  "Beta 57",
-  "Beta 58",
-  "Beta 91",
-  "Beta 98",
-  "MD421",
-  "MD441",
-  "e609",
-  "e906",
-  "C414",
-  "KM184",
-  "U87",
-  "AT4050",
+  "Shure Beta 58",
+  "Shure Beta 57",
+  "Shure Beta 52",
+  "Audix D6",
+  "Sennheiser e609",
+  "Sennheiser e906",
+  "Sennheiser MD421",
+  "Shure SM81",
+  "Shure Beta 91",
+  "Shure Beta 98",
+  "AKG C414",
+  "Neumann KM184",
+  "Sennheiser MD441",
+  "Audio-Technica AT4050",
+  "Neumann U87",
 ];
 
 // Predefined options for monitor type dropdown
@@ -302,6 +303,32 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
     setInputs((prev) => [...prev, newInput]);
   };
 
+  // Add a new input row at a specific index
+  const insertInputRow = (index: number) => {
+    const newInput: InputRow = {
+      id: uuidv4(),
+      number: "", // Will be renumbered after insertion
+      name: "",
+      channelType: "",
+      standType: "",
+    };
+
+    setInputs((prev) => {
+      // Insert the new row at the specified index
+      const newInputs = [
+        ...prev.slice(0, index + 1),
+        newInput,
+        ...prev.slice(index + 1),
+      ];
+
+      // Renumber all rows
+      return newInputs.map((input, idx) => ({
+        ...input,
+        number: String(idx + 1),
+      }));
+    });
+  };
+
   // Add a new output row
   const addOutputRow = () => {
     const newOutput: OutputRow = {
@@ -312,6 +339,32 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
       monitorType: "",
     };
     setOutputs((prev) => [...prev, newOutput]);
+  };
+
+  // Add a new output row at a specific index
+  const insertOutputRow = (index: number) => {
+    const newOutput: OutputRow = {
+      id: uuidv4(),
+      number: "", // Will be renumbered after insertion
+      name: "",
+      channelType: "",
+      monitorType: "",
+    };
+
+    setOutputs((prev) => {
+      // Insert the new row at the specified index
+      const newOutputs = [
+        ...prev.slice(0, index + 1),
+        newOutput,
+        ...prev.slice(index + 1),
+      ];
+
+      // Renumber all rows
+      return newOutputs.map((output, idx) => ({
+        ...output,
+        number: String(idx + 1),
+      }));
+    });
   };
 
   // Delete an input row
@@ -348,6 +401,62 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
         boxShadow: "none",
       }}
     >
+      <style>
+        {`
+          .input-output-table tr:hover .insert-row-button {
+            opacity: 1;
+          }
+          
+          .input-output-table tr .insert-row-button {
+            opacity: 0;
+          }
+          
+          .insert-row-button {
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #0074e8, #0055cc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            color: white;
+            box-shadow: 
+              0 2px 4px rgba(0,0,0,0.3),
+              inset 0 1px 1px rgba(255,255,255,0.4),
+              inset 0 -1px 1px rgba(0,0,0,0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+          }
+          
+          .insert-row-button svg {
+            width: 12px;
+            height: 12px;
+            stroke: white;
+            stroke-width: 3;
+          }
+          
+          .insert-row-button:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 
+              0 3px 6px rgba(0,0,0,0.4),
+              inset 0 1px 1px rgba(255,255,255,0.4),
+              inset 0 -1px 1px rgba(0,0,0,0.3);
+          }
+          
+          .insert-row-button:active {
+            transform: translateX(-50%) scale(0.98);
+            background: linear-gradient(145deg, #0055cc, #0074e8);
+            box-shadow: 
+              0 1px 2px rgba(0,0,0,0.4),
+              inset 0 1px 1px rgba(0,0,0,0.3);
+          }
+        `}
+      </style>
       <h2 style={{ color: "white", marginBottom: "16px", fontWeight: 300 }}>
         Stage Input List
       </h2>
@@ -399,6 +508,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
               style={{
                 backgroundColor: "transparent",
                 borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+                position: "relative",
               }}
             >
               <td style={{ padding: "10px" }}>
@@ -485,6 +595,16 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
                   🗑️
                 </button>
               </td>
+              <div
+                className="insert-row-button"
+                onClick={() => insertInputRow(index)}
+                title="Insert row below"
+              >
+                <svg viewBox="0 0 24 24">
+                  <line x1="12" y1="6" x2="12" y2="18" />
+                  <line x1="6" y1="12" x2="18" y2="12" />
+                </svg>
+              </div>
             </tr>
           ))}
         </tbody>
@@ -559,6 +679,7 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
               style={{
                 backgroundColor: "transparent",
                 borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+                position: "relative",
               }}
             >
               <td style={{ padding: "10px" }}>
@@ -635,6 +756,16 @@ const InputOutputTable: React.FC<InputOutputTableProps> = ({
                   🗑️
                 </button>
               </td>
+              <div
+                className="insert-row-button"
+                onClick={() => insertOutputRow(index)}
+                title="Insert row below"
+              >
+                <svg viewBox="0 0 24 24">
+                  <line x1="12" y1="6" x2="12" y2="18" />
+                  <line x1="6" y1="12" x2="18" y2="12" />
+                </svg>
+              </div>
             </tr>
           ))}
         </tbody>

@@ -200,6 +200,15 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
   // Buttons to open the modal
   const renderButtons = () => (
     <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+      {/* Load button */}
+      <button
+        onClick={openLoadModal}
+        className="header-button"
+        title="Load configuration"
+      >
+        <span style={{ fontFamily: "sans-serif" }}>&#128194;</span>
+      </button>
+
       {/* Save button - enabled only when we have unsaved changes and a current config ID */}
       <button
         onClick={onSave}
@@ -228,15 +237,6 @@ const ConfigManager: React.FC<ConfigManagerProps> = ({
         title="Save as a new configuration"
       >
         <span style={{ fontFamily: "sans-serif" }}>&#128190;+</span>
-      </button>
-
-      {/* Load button */}
-      <button
-        onClick={openLoadModal}
-        className="header-button"
-        title="Load configuration"
-      >
-        <span style={{ fontFamily: "sans-serif" }}>&#128194;</span>
       </button>
     </div>
   );

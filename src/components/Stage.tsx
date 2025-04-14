@@ -1273,7 +1273,13 @@ const Stage: React.FC<StageProps> = ({
     unknown,
     { isOver: boolean }
   >(() => ({
-    accept: ["instruments", "equipment", "musicians", ItemTypes.STAGE_ITEM],
+    accept: [
+      "instruments",
+      "equipment",
+      "musicians",
+      "labels",
+      ItemTypes.STAGE_ITEM,
+    ],
     drop: (item, monitor) => {
       // If we're in lasso selection mode, don't handle drops
       if (isDraggingLasso) return undefined;

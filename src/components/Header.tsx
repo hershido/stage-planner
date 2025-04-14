@@ -61,13 +61,60 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Control buttons */}
       <div className="control-buttons">
+        {/* New Configuration Button */}
         <button
           onClick={onNewConfig}
           title="New Configuration"
           className="header-button"
         >
-          <span style={{ fontFamily: "sans-serif" }}>&#10133;</span>
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Document base */}
+            <path
+              d="M4 4C4 2.89543 4.89543 2 6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z"
+              fill="white"
+            />
+            {/* Folded corner */}
+            <path
+              d="M14 2L20 8H15C14.4477 8 14 7.55228 14 7V2Z"
+              fill="#BDE0FF"
+            />
+            {/* Text lines */}
+            <path
+              d="M7.5 11.5H16.5"
+              stroke="#0074e8"
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
+            <path
+              d="M7.5 14.5H16.5"
+              stroke="#0074e8"
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
+            <path
+              d="M7.5 17.5H16.5"
+              stroke="#0074e8"
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
+            {/* Plus sign - moved to top right corner */}
+            <circle cx="17" cy="7" r="4" fill="#0074e8" />
+            <path
+              d="M17 5V9M15 7H19"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
         </button>
+
+        {/* ConfigManager (includes Load button) */}
         <ConfigManager
           items={items}
           inputOutput={inputOutput}
@@ -79,13 +126,8 @@ const Header: React.FC<HeaderProps> = ({
           onSave={onSave}
           onSaveAs={onSaveAs}
         />
-        <button
-          onClick={openTechnicalInfo}
-          title="Technical Info"
-          className="header-button info-button"
-        >
-          Tech Rider
-        </button>
+
+        {/* PDF Export Button */}
         <button
           onClick={handleExportPDF}
           title="Export to PDF"
@@ -97,6 +139,17 @@ const Header: React.FC<HeaderProps> = ({
             style={{ width: "38px", height: "38px" }}
           />
         </button>
+
+        {/* Tech Rider Button */}
+        <button
+          onClick={openTechnicalInfo}
+          title="Technical Info"
+          className="header-button info-button"
+        >
+          Tech Rider
+        </button>
+
+        {/* Undo/Redo buttons */}
         <button
           onClick={handleUndo}
           disabled={currentHistoryIndex <= 0}
