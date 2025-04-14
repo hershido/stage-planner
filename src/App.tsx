@@ -1669,17 +1669,13 @@ function App() {
           currentHistoryIndex={currentHistoryIndex}
           historyLength={historyLength}
           onTitleChange={handleTitleChange}
-          toggleSidePanel={() => setIsSidePanelOpen(!isSidePanelOpen)}
-          isSidePanelOpen={isSidePanelOpen}
           saveStatus={saveStatus}
           saveError={saveError}
         >
           <UserMenu />
         </Header>
 
-        <div
-          className={`content-container ${isSidePanelOpen ? "with-panel" : ""}`}
-        >
+        <div className="content-container">
           <div
             ref={stageContainerRef}
             style={{

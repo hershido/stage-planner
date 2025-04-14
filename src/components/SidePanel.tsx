@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StageInputOutput, TechnicalInfo } from "../types/stage";
 import InputOutputTable from "./InputOutputTable";
 import TechnicalInfoForm from "./TechnicalInfoForm";
+import sidePanelIcon from "../assets/icons/sidePanelIcon.svg";
 
 interface SidePanelProps {
   isOpen: boolean;
@@ -33,9 +34,15 @@ const SidePanel: React.FC<SidePanelProps> = ({
 
   return (
     <div className={`side-panel ${isOpen ? "open" : "closed"}`}>
-      {/* Toggle button */}
-      <div className="panel-toggle" onClick={onToggle}>
-        <span>{isOpen ? "›" : "‹"}</span>
+      {/* Panel handle as part of the panel */}
+      <div className="panel-tab" onClick={onToggle}>
+        <img
+          src={sidePanelIcon}
+          alt="Toggle Panel"
+          width="20"
+          height="20"
+          style={{ filter: "brightness(0) invert(1)" }}
+        />
       </div>
 
       {/* Panel Content */}

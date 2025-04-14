@@ -5,7 +5,6 @@ import newProjectIcon from "../assets/icons/newProjectIcon.svg";
 import undoIcon from "../assets/icons/undoIcon.svg";
 import redoIcon from "../assets/icons/redoIcon.svg";
 import exprortToPdfIcon from "../assets/icons/exprortToPdf.svg";
-import sidePanelIcon from "../assets/icons/sidePanelIcon.svg";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -35,8 +34,6 @@ interface HeaderProps {
   children?: React.ReactNode;
   saveStatus?: SaveStatus;
   saveError?: string | null;
-  toggleSidePanel?: () => void;
-  isSidePanelOpen?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -59,8 +56,6 @@ const Header: React.FC<HeaderProps> = ({
   children,
   saveStatus = "idle",
   saveError = null,
-  toggleSidePanel,
-  isSidePanelOpen,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleText, setTitleText] = useState(currentConfigName || "");
@@ -335,21 +330,6 @@ const Header: React.FC<HeaderProps> = ({
           <img
             src={redoIcon}
             alt="Redo"
-            width="20"
-            height="20"
-            style={{ filter: "brightness(0) invert(1)" }}
-          />
-        </button>
-
-        {/* Side Panel toggle button */}
-        <button
-          onClick={toggleSidePanel}
-          className={`header-button ${isSidePanelOpen ? "active" : ""}`}
-          title="Open side panel with Input/Output and Technical Info"
-        >
-          <img
-            src={sidePanelIcon}
-            alt="Side Panel"
             width="20"
             height="20"
             style={{ filter: "brightness(0) invert(1)" }}
