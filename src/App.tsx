@@ -3,11 +3,10 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Stage from "./components/Stage";
 import Sidebar from "./components/Sidebar";
+import SidePanel from "./components/SidePanel";
 import Header, { SaveStatus } from "./components/Header";
 import Login from "./components/Login";
 import UserMenu from "./components/UserMenu";
-import InputOutputTable from "./components/InputOutputTable";
-import TechnicalInfoForm from "./components/TechnicalInfoForm";
 import {
   StageItem,
   DraggableItem,
@@ -25,6 +24,31 @@ import {
 import "./App.css";
 import { v4 as uuidv4 } from "uuid";
 import { SaveChangesDialog } from "./components/SaveChangesDialog";
+
+// File System Access API types
+interface FileSystemFileHandle {
+  createWritable(): Promise<FileSystemWritableFileStream>;
+}
+
+interface FileSystemWritableFileStream {
+  write(data: Blob): Promise<void>;
+  close(): Promise<void>;
+}
+
+interface ShowSaveFilePickerOptions {
+  suggestedName?: string;
+  types?: Array<{
+    description: string;
+    accept: Record<string, string[]>;
+  }>;
+}
+
+// Extend the Window interface instead of redefining it
+interface CustomWindow extends Window {
+  showSaveFilePicker?: (
+    options?: ShowSaveFilePickerOptions
+  ) => Promise<FileSystemFileHandle>;
+}
 
 // Define a type for our history entry
 interface HistoryEntry {
@@ -58,9 +82,8 @@ function App() {
     backline: "",
     soundCheck: "",
   });
-  const [isTechnicalInfoModalOpen, setIsTechnicalInfoModalOpen] =
-    useState(false);
   const [showSaveChangesDialog, setShowSaveChangesDialog] = useState(false);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
 
   // Use refs instead of state for the save/load functions to prevent re-renders
   const exportConfigRef = useRef<() => void>(() => {
@@ -90,79 +113,6 @@ function App() {
   // Add state for save status and error message
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Function to handle technical info changes
-  const handleTechnicalInfoChange = useCallback(
-    (newTechnicalInfo: TechnicalInfo) => {
-      // Don't mark as having unsaved changes if we're loading a configuration
-      if (isLoadingConfigRef.current) {
-        setTechnicalInfo(newTechnicalInfo);
-        return;
-      }
-
-      // Deep equality check to avoid unnecessary updates and unsaved changes flag
-      const isSame = (a: TechnicalInfo, b: TechnicalInfo): boolean => {
-        // Compare all simple properties first
-        if (
-          a.projectTitle !== b.projectTitle ||
-          a.generalInfo !== b.generalInfo ||
-          a.houseSystem !== b.houseSystem ||
-          a.mixingDesk !== b.mixingDesk ||
-          a.monitoring !== b.monitoring ||
-          a.backline !== b.backline ||
-          a.soundCheck !== b.soundCheck
-        ) {
-          return false;
-        }
-
-        // Check personnel arrays length first
-        if (a.personnel.length !== b.personnel.length) {
-          return false;
-        }
-
-        // Check each personnel item deeply
-        for (let i = 0; i < a.personnel.length; i++) {
-          const personA = a.personnel[i];
-          const personB = b.personnel[i];
-
-          if (
-            personA.id !== personB.id ||
-            personA.name !== personB.name ||
-            personA.role !== personB.role ||
-            personA.phone !== personB.phone ||
-            personA.email !== personB.email
-          ) {
-            return false;
-          }
-        }
-
-        // If we made it here, all properties are the same
-        return true;
-      };
-
-      // Check if the new technical info has any content
-      const hasContent =
-        newTechnicalInfo.projectTitle ||
-        newTechnicalInfo.generalInfo ||
-        newTechnicalInfo.houseSystem ||
-        newTechnicalInfo.mixingDesk ||
-        newTechnicalInfo.monitoring ||
-        newTechnicalInfo.backline ||
-        newTechnicalInfo.soundCheck ||
-        newTechnicalInfo.personnel.length > 0;
-
-      // Only set technicalInfo and mark as unsaved if there are actual changes
-      if (!isSame(technicalInfo, newTechnicalInfo)) {
-        setTechnicalInfo(newTechnicalInfo);
-
-        // Only mark as unsaved if there's actual content
-        if (hasContent) {
-          setHasUnsavedChanges(true);
-        }
-      }
-    },
-    [technicalInfo]
-  );
 
   // Handler for input/output changes
   const handleInputOutputChange = useCallback(
@@ -1291,7 +1241,7 @@ function App() {
 
         // Use the File System Access API if available (Chrome, Edge)
         if ("showSaveFilePicker" in window) {
-          const opts = {
+          const opts: ShowSaveFilePickerOptions = {
             suggestedName: fileName,
             types: [
               {
@@ -1302,9 +1252,7 @@ function App() {
           };
 
           // Show the system save dialog
-          // @ts-expect-error The File System Access API might not be typed
-          window
-            .showSaveFilePicker(opts)
+          (window as unknown as CustomWindow).showSaveFilePicker!(opts)
             .then(async (fileHandle: FileSystemFileHandle) => {
               // Get a writable stream to the file
               const writable = await fileHandle.createWritable();
@@ -1585,6 +1533,79 @@ function App() {
     [currentConfigName, currentConfigId]
   );
 
+  // Function to handle technical info changes
+  const handleTechnicalInfoChange = useCallback(
+    (newTechnicalInfo: TechnicalInfo) => {
+      // Don't mark as having unsaved changes if we're loading a configuration
+      if (isLoadingConfigRef.current) {
+        setTechnicalInfo(newTechnicalInfo);
+        return;
+      }
+
+      // Deep equality check to avoid unnecessary updates and unsaved changes flag
+      const isSame = (a: TechnicalInfo, b: TechnicalInfo): boolean => {
+        // Compare all simple properties first
+        if (
+          a.projectTitle !== b.projectTitle ||
+          a.generalInfo !== b.generalInfo ||
+          a.houseSystem !== b.houseSystem ||
+          a.mixingDesk !== b.mixingDesk ||
+          a.monitoring !== b.monitoring ||
+          a.backline !== b.backline ||
+          a.soundCheck !== b.soundCheck
+        ) {
+          return false;
+        }
+
+        // Check personnel arrays length first
+        if (a.personnel.length !== b.personnel.length) {
+          return false;
+        }
+
+        // Check each personnel item deeply
+        for (let i = 0; i < a.personnel.length; i++) {
+          const personA = a.personnel[i];
+          const personB = b.personnel[i];
+
+          if (
+            personA.id !== personB.id ||
+            personA.name !== personB.name ||
+            personA.role !== personB.role ||
+            personA.phone !== personB.phone ||
+            personA.email !== personB.email
+          ) {
+            return false;
+          }
+        }
+
+        // If we made it here, all properties are the same
+        return true;
+      };
+
+      // Check if the new technical info has any content
+      const hasContent =
+        newTechnicalInfo.projectTitle ||
+        newTechnicalInfo.generalInfo ||
+        newTechnicalInfo.houseSystem ||
+        newTechnicalInfo.mixingDesk ||
+        newTechnicalInfo.monitoring ||
+        newTechnicalInfo.backline ||
+        newTechnicalInfo.soundCheck ||
+        newTechnicalInfo.personnel.length > 0;
+
+      // Only set technicalInfo and mark as unsaved if there are actual changes
+      if (!isSame(technicalInfo, newTechnicalInfo)) {
+        setTechnicalInfo(newTechnicalInfo);
+
+        // Only mark as unsaved if there's actual content
+        if (hasContent) {
+          setHasUnsavedChanges(true);
+        }
+      }
+    },
+    [technicalInfo]
+  );
+
   // Show loading state
   if (loading) {
     return (
@@ -1647,24 +1668,18 @@ function App() {
           handleRedo={handleRedo}
           currentHistoryIndex={currentHistoryIndex}
           historyLength={historyLength}
-          openTechnicalInfo={() => setIsTechnicalInfoModalOpen(true)}
           onTitleChange={handleTitleChange}
+          toggleSidePanel={() => setIsSidePanelOpen(!isSidePanelOpen)}
+          isSidePanelOpen={isSidePanelOpen}
           saveStatus={saveStatus}
           saveError={saveError}
         >
           <UserMenu />
         </Header>
 
-        <div className="content-container">
-          {/* Technical Info Modal */}
-          <TechnicalInfoForm
-            isOpen={isTechnicalInfoModalOpen}
-            onClose={() => setIsTechnicalInfoModalOpen(false)}
-            technicalInfo={technicalInfo}
-            onSave={handleTechnicalInfoChange}
-          />
-
-          {/* Stage container */}
+        <div
+          className={`content-container ${isSidePanelOpen ? "with-panel" : ""}`}
+        >
           <div
             ref={stageContainerRef}
             style={{
@@ -1693,6 +1708,7 @@ function App() {
                   overflow: "hidden",
                   boxShadow: "0 0 10px rgba(0, 0, 0, 0.2)",
                 }}
+                className="stage-container"
               >
                 <Stage
                   width={1200}
@@ -1720,23 +1736,17 @@ function App() {
                 />
               </div>
             </div>
-
-            <div
-              className="input-output-container"
-              style={{
-                width: "100%",
-                maxWidth: "1200px",
-                backgroundColor: "transparent",
-                borderRadius: "8px",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-              }}
-            >
-              <InputOutputTable
-                inputOutput={inputOutput}
-                onChange={handleInputOutputChange}
-              />
-            </div>
           </div>
+
+          {/* Side Panel for Input/Output and Technical Info */}
+          <SidePanel
+            isOpen={isSidePanelOpen}
+            onToggle={() => setIsSidePanelOpen(!isSidePanelOpen)}
+            inputOutput={inputOutput}
+            onInputOutputChange={handleInputOutputChange}
+            technicalInfo={technicalInfo}
+            onTechnicalInfoChange={handleTechnicalInfoChange}
+          />
         </div>
       </div>
       <SaveChangesDialog

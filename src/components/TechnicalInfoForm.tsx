@@ -23,6 +23,7 @@ interface TechnicalInfoFormProps {
   onClose: () => void;
   technicalInfo?: TechnicalInfo;
   onSave: (technicalInfo: TechnicalInfo) => void;
+  isEmbedded?: boolean;
 }
 
 const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
@@ -30,6 +31,7 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
   onClose,
   technicalInfo,
   onSave,
+  isEmbedded = false,
 }) => {
   const [projectTitle, setProjectTitle] = useState("");
   const [personnel, setPersonnel] = useState<Person[]>([]);
@@ -181,10 +183,16 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div
-      style={{
-        position: "fixed",
+  // Different styles for modal vs embedded mode
+  const containerStyle = isEmbedded
+    ? {
+        height: "100%",
+        backgroundColor: "transparent",
+        overflowY: "auto" as const,
+        color: "white",
+      }
+    : {
+        position: "fixed" as const,
         top: 0,
         left: 0,
         right: 0,
@@ -194,45 +202,58 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
         justifyContent: "center",
         alignItems: "center",
         zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "#222",
-          padding: "20px",
-          borderRadius: "8px",
-          width: "800px",
-          maxWidth: "90%",
-          maxHeight: "90vh",
-          overflowY: "auto",
-          color: "white",
-          border: "1px solid rgba(255, 255, 255, 0.2)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "20px",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
-            paddingBottom: "10px",
-          }}
-        >
-          <h2 style={{ margin: 0, fontWeight: 300 }}>Technical Information</h2>
-          <button
-            onClick={onClose}
+      };
+
+  const formContainerStyle = isEmbedded
+    ? {
+        backgroundColor: "transparent",
+        padding: "0",
+        height: "100%",
+        overflow: "auto" as const,
+      }
+    : {
+        backgroundColor: "#222",
+        padding: "20px",
+        borderRadius: "8px",
+        width: "800px",
+        maxWidth: "90%",
+        maxHeight: "90vh",
+        overflowY: "auto" as const,
+        color: "white",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+      };
+
+  return (
+    <div style={containerStyle}>
+      <div style={formContainerStyle}>
+        {!isEmbedded && (
+          <div
             style={{
-              background: "transparent",
-              border: "none",
-              fontSize: "24px",
-              cursor: "pointer",
-              color: "white",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "20px",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+              paddingBottom: "10px",
             }}
           >
-            ×
-          </button>
-        </div>
+            <h2 style={{ margin: 0, fontWeight: 300 }}>
+              Technical Information
+            </h2>
+            <button
+              onClick={onClose}
+              style={{
+                background: "transparent",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                color: "white",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div style={{ marginBottom: "20px" }}>
           <label
@@ -644,6 +665,39 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
             }}
             placeholder="Enter sound check schedule"
           />
+        </div>
+
+        <div style={{ marginTop: "20px", textAlign: "right" }}>
+          {!isEmbedded && (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                marginRight: "10px",
+                padding: "8px 16px",
+                backgroundColor: "#f5f5f5",
+                color: "#333",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#0074e8",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            {isEmbedded ? "Apply Changes" : "Save Changes"}
+          </button>
         </div>
       </div>
     </div>

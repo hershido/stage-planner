@@ -14,6 +14,8 @@ import keyboardPlayerFemale from "../assets/icons/keyboardPlayerFemale.svg";
 import vocalistMale from "../assets/icons/vocalistMale.svg";
 import vocalistFemale from "../assets/icons/vocalistFemale.svg";
 import dragQueen from "../assets/icons/dragQueen.svg";
+import trumpetPlayer from "../assets/icons/trumpetPlayer.svg";
+import saxophonePlayer from "../assets/icons/saxophonePlayer.svg";
 import guitarAmpMarshallStack from "../assets/icons/guitarAmpMarshallStack.svg";
 import guitarAmpFenderCombo from "../assets/icons/guitarAmpFenderCombo.svg";
 import bassAmpSvtStack from "../assets/icons/bassAmpSvtStack.svg";
@@ -94,6 +96,7 @@ const DraggableItemComponent: React.FC<DraggableItemProps> = ({
         width: "calc(33.333% - 8px)",
         margin: "4px",
         height: "90px",
+        overflow: "hidden",
       }}
       className="sidebar-item"
     >
@@ -221,7 +224,10 @@ const Category: React.FC<CategoryProps> = ({
       </div>
 
       {isExpanded && (
-        <div className="scroll-container-wrapper">
+        <div
+          className="scroll-container-wrapper"
+          style={{ overflowX: "hidden" }}
+        >
           <div
             className={`fade-top ${
               shouldShowFades && canScrollUp ? "visible" : ""
@@ -234,8 +240,9 @@ const Category: React.FC<CategoryProps> = ({
                 ? "scrollable-container"
                 : "non-scrollable-container"
             }`}
+            style={{ overflowX: "hidden" }}
           >
-            <div className="sidebar-grid-container">
+            <div className="sidebar-grid-container" style={{ width: "100%" }}>
               {items.map((item) => (
                 <DraggableItemComponent
                   key={item.name}
@@ -365,6 +372,150 @@ const EquipmentCategory: React.FC<{
               level="sub"
               isSearching={isSearching}
               icon={electricDropTwoSockets}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// Musicians category component with subcategories
+const MusicianCategory: React.FC<{
+  guitaristItems: DraggableItem[];
+  bassistItems: DraggableItem[];
+  keyboardItems: DraggableItem[];
+  vocalistItems: DraggableItem[];
+  drummerItems: DraggableItem[];
+  windItems: DraggableItem[];
+  onItemClick: (item: DraggableItem) => void;
+  isSearching: boolean;
+  icon?: string;
+}> = ({
+  guitaristItems,
+  bassistItems,
+  keyboardItems,
+  vocalistItems,
+  drummerItems,
+  windItems,
+  onItemClick,
+  isSearching,
+  icon,
+}) => {
+  // Initialize as expanded if searching and there are matching items
+  const [isExpanded, setIsExpanded] = useState(
+    isSearching &&
+      (guitaristItems.length > 0 ||
+        bassistItems.length > 0 ||
+        keyboardItems.length > 0 ||
+        vocalistItems.length > 0 ||
+        drummerItems.length > 0 ||
+        windItems.length > 0)
+  );
+
+  // Update expansion state when search status changes
+  useEffect(() => {
+    if (
+      isSearching &&
+      (guitaristItems.length > 0 ||
+        bassistItems.length > 0 ||
+        keyboardItems.length > 0 ||
+        vocalistItems.length > 0 ||
+        drummerItems.length > 0 ||
+        windItems.length > 0)
+    ) {
+      setIsExpanded(true);
+    }
+  }, [
+    isSearching,
+    guitaristItems.length,
+    bassistItems.length,
+    keyboardItems.length,
+    vocalistItems.length,
+    drummerItems.length,
+    windItems.length,
+  ]);
+
+  return (
+    <div style={{ marginBottom: "16px" }}>
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="sidebar-category-header"
+      >
+        <div className="header-content">
+          {icon && <img src={icon} alt="" className="category-icon" />}
+          <h3>Musicians</h3>
+        </div>
+        <div
+          className={`toggle-icon ${isExpanded ? "expanded" : "collapsed"}`}
+        ></div>
+      </div>
+
+      {isExpanded && (
+        <>
+          {guitaristItems.length > 0 && (
+            <Category
+              title="Guitarists"
+              items={guitaristItems}
+              onItemClick={onItemClick}
+              level="sub"
+              isSearching={isSearching}
+              icon={guitarPlayerMale}
+            />
+          )}
+
+          {bassistItems.length > 0 && (
+            <Category
+              title="Bassists"
+              items={bassistItems}
+              onItemClick={onItemClick}
+              level="sub"
+              isSearching={isSearching}
+              icon={bassPlayerMale}
+            />
+          )}
+
+          {keyboardItems.length > 0 && (
+            <Category
+              title="Keyboard Players"
+              items={keyboardItems}
+              onItemClick={onItemClick}
+              level="sub"
+              isSearching={isSearching}
+              icon={keyboardPlayerMale}
+            />
+          )}
+
+          {vocalistItems.length > 0 && (
+            <Category
+              title="Vocalists"
+              items={vocalistItems}
+              onItemClick={onItemClick}
+              level="sub"
+              isSearching={isSearching}
+              icon={vocalistMale}
+            />
+          )}
+
+          {drummerItems.length > 0 && (
+            <Category
+              title="Drummers"
+              items={drummerItems}
+              onItemClick={onItemClick}
+              level="sub"
+              isSearching={isSearching}
+              icon={drumPlayerMale}
+            />
+          )}
+
+          {windItems.length > 0 && (
+            <Category
+              title="Wind Instruments"
+              items={windItems}
+              onItemClick={onItemClick}
+              level="sub"
+              isSearching={isSearching}
+              icon={trumpetPlayer}
             />
           )}
         </>
@@ -634,6 +785,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 180,
       defaultHeight: 150,
     },
+
+    // Musicians - Wind Instruments
+    {
+      type: "musicians",
+      name: "Trumpet Player",
+      icon: trumpetPlayer,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Saxophone Player",
+      icon: saxophonePlayer,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
   ];
 
   const filteredItems =
@@ -692,13 +859,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Roboto Mono', monospace",
+        overflowX: "hidden",
       }}
     >
       <div className="sidebar-app-logo">
         <img src={appLogo} alt="Stage Planner" />
       </div>
 
-      <div className="sidebar-inner-content">
+      <div className="sidebar-inner-content" style={{ overflowX: "hidden" }}>
         <h2
           style={{
             marginBottom: "16px",
@@ -735,7 +903,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           />
         </div>
 
-        <div style={{ flexGrow: 1, overflowY: "auto" }}>
+        <div style={{ flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
           {instrumentItems.length > 0 && (
             <Category
               title="Instruments"
@@ -770,12 +938,32 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           )}
 
           {musicianItems.length > 0 && (
-            <Category
-              title="Musicians"
-              items={musicianItems}
+            <MusicianCategory
+              guitaristItems={musicianItems.filter((item) =>
+                item.name.includes("Guitarist")
+              )}
+              bassistItems={musicianItems.filter((item) =>
+                item.name.includes("Bassist")
+              )}
+              keyboardItems={musicianItems.filter((item) =>
+                item.name.includes("Keyboard")
+              )}
+              vocalistItems={musicianItems.filter(
+                (item) =>
+                  item.name.includes("Vocalist") ||
+                  item.name.includes("Drag Queen")
+              )}
+              drummerItems={musicianItems.filter((item) =>
+                item.name.includes("Drummer")
+              )}
+              windItems={musicianItems.filter(
+                (item) =>
+                  item.name.includes("Trumpet") ||
+                  item.name.includes("Saxophone")
+              )}
               onItemClick={onItemClick}
               isSearching={searchTerm.trim() !== ""}
-              icon={vocalistMale}
+              icon={guitarPlayerMale}
             />
           )}
 

@@ -434,14 +434,16 @@ table tr.spacer-row:hover .row-insert-container,
 }
 
 .header-button:hover {
-  transform: scale(1.1);
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Remove the new-button specific styling, keeping only general button styles */
+.header-button.active {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #0074e8;
+}
 
 .header-button.disabled {
-  color: #666;
+  opacity: 0.4;
   cursor: default;
 }
 
@@ -948,4 +950,99 @@ textarea:focus {
   stroke-dasharray: 30;
   stroke-dashoffset: 0;
   animation: check-appear 0.3s ease-in-out;
+}
+
+/* Side Panel Styles */
+.side-panel {
+  position: fixed;
+  right: 0;
+  top: 70px;
+  bottom: 0;
+  width: 960px;
+  background-color: rgba(39, 41, 45, 0.97);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  transition: right 0.3s ease-in-out;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  backdrop-filter: blur(3px);
+}
+
+.side-panel.closed {
+  right: -960px;
+}
+
+.panel-toggle {
+  position: absolute;
+  left: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 60px;
+  background-color: #27292d;
+  border-radius: 4px 0 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: none;
+  font-size: 18px;
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.panel-toggle:hover {
+  background-color: #323438;
+}
+
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #1e2023;
+}
+
+.tab {
+  padding: 12px 15px;
+  cursor: pointer;
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  font-weight: 600;
+  color: #fff;
+  background-color: #27292d;
+  border-bottom: 2px solid #0074e8;
+}
+
+.tab:hover:not(.active) {
+  background-color: #242629;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tab-content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+/* Adjust content margins when panel is open */
+.content-container.with-panel {
+  transition: margin-right 0.3s ease-in-out;
+  /* margin-right is intentionally not set here to prevent content shifting */
+}
+
+/* Remove scaling of stage when panel is open */
+@media (max-width: 1920px) {
+  .content-container.with-panel .stage-container {
+    transition: transform 0.3s ease-in-out;
+    /* transform: scale is intentionally not set here to prevent content scaling */
+  }
 }

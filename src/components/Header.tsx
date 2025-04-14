@@ -1,7 +1,6 @@
-import React, { ReactNode, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ConfigManager from "./ConfigManager";
 import { StageItem, StageInputOutput, TechnicalInfo } from "../types/stage";
-import pdfDownloadIcon from "../assets/icons/pdfDownload.svg";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -10,28 +9,29 @@ interface HeaderProps {
   inputOutput?: StageInputOutput;
   technicalInfo?: TechnicalInfo;
   onLoad: (
-    importedItems: StageItem[],
+    items: StageItem[],
     configName: string,
     configId?: string,
-    importedInputOutput?: StageInputOutput,
-    importedTechnicalInfo?: TechnicalInfo
+    inputOutput?: StageInputOutput,
+    technicalInfo?: TechnicalInfo
   ) => void;
   currentConfigName: string | null;
   currentConfigId: string | null;
   hasUnsavedChanges: boolean;
-  onSave: () => Promise<void>;
-  onSaveAs: () => void;
+  onSave: () => void;
+  onSaveAs?: () => void;
   onNewConfig: () => void;
   handleExportPDF: () => void;
   handleUndo: () => void;
   handleRedo: () => void;
   currentHistoryIndex: number;
   historyLength: number;
-  openTechnicalInfo: () => void;
   onTitleChange?: (newTitle: string) => void;
-  saveStatus: SaveStatus;
-  saveError: string | null;
-  children?: ReactNode;
+  children?: React.ReactNode;
+  saveStatus?: SaveStatus;
+  saveError?: string | null;
+  toggleSidePanel?: () => void;
+  isSidePanelOpen?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -50,11 +50,12 @@ const Header: React.FC<HeaderProps> = ({
   handleRedo,
   currentHistoryIndex,
   historyLength,
-  openTechnicalInfo,
   onTitleChange,
-  saveStatus,
-  saveError,
   children,
+  saveStatus = "idle",
+  saveError = null,
+  toggleSidePanel,
+  isSidePanelOpen,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleText, setTitleText] = useState(currentConfigName || "");
@@ -273,54 +274,10 @@ const Header: React.FC<HeaderProps> = ({
         {/* New Configuration Button */}
         <button
           onClick={onNewConfig}
-          title="New Configuration"
           className="header-button"
+          title="New stage plan"
         >
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Document base */}
-            <path
-              d="M4 4C4 2.89543 4.89543 2 6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z"
-              fill="white"
-            />
-            {/* Folded corner */}
-            <path
-              d="M14 2L20 8H15C14.4477 8 14 7.55228 14 7V2Z"
-              fill="#BDE0FF"
-            />
-            {/* Text lines */}
-            <path
-              d="M7.5 11.5H16.5"
-              stroke="#0074e8"
-              strokeWidth="1"
-              strokeLinecap="round"
-            />
-            <path
-              d="M7.5 14.5H16.5"
-              stroke="#0074e8"
-              strokeWidth="1"
-              strokeLinecap="round"
-            />
-            <path
-              d="M7.5 17.5H16.5"
-              stroke="#0074e8"
-              strokeWidth="1"
-              strokeLinecap="round"
-            />
-            {/* Plus sign - moved to top right corner */}
-            <circle cx="17" cy="7" r="4" fill="#0074e8" />
-            <path
-              d="M17 5V9M15 7H19"
-              stroke="white"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
+          <span style={{ fontFamily: "sans-serif" }}>+</span>
         </button>
 
         {/* ConfigManager (includes Load button) */}
@@ -329,55 +286,75 @@ const Header: React.FC<HeaderProps> = ({
           inputOutput={inputOutput}
           technicalInfo={technicalInfo}
           onLoad={onLoad}
-          currentConfigName={currentConfigName}
+          currentConfigName={currentConfigName || "Untitled"}
           currentConfigId={currentConfigId}
           hasUnsavedChanges={hasUnsavedChanges}
           onSave={onSave}
           onSaveAs={onSaveAs}
+          saveStatus={saveStatus}
         />
 
-        {/* PDF Export Button */}
-        <button
-          onClick={handleExportPDF}
-          title="Export to PDF"
-          className="header-button pdf-button"
-        >
-          <img
-            src={pdfDownloadIcon}
-            alt="PDF"
-            style={{ width: "38px", height: "38px" }}
-          />
-        </button>
-
-        {/* Tech Rider Button */}
-        <button
-          onClick={openTechnicalInfo}
-          title="Technical Info"
-          className="header-button info-button"
-        >
-          Tech Rider
-        </button>
-
-        {/* Undo/Redo buttons */}
+        {/* Undo button */}
         <button
           onClick={handleUndo}
           disabled={currentHistoryIndex <= 0}
-          title="Undo (Cmd+Z / Ctrl+Z)"
           className={`header-button ${
             currentHistoryIndex <= 0 ? "disabled" : ""
           }`}
+          title="Undo"
         >
-          <span style={{ fontFamily: "sans-serif" }}>&#8617;</span>
+          <span style={{ fontFamily: "sans-serif" }}>↩</span>
         </button>
+
+        {/* Redo button */}
         <button
           onClick={handleRedo}
           disabled={currentHistoryIndex >= historyLength - 1}
-          title="Redo (Cmd+Shift+Z / Ctrl+Shift+Z)"
           className={`header-button ${
             currentHistoryIndex >= historyLength - 1 ? "disabled" : ""
           }`}
+          title="Redo"
         >
-          <span style={{ fontFamily: "sans-serif" }}>&#8618;</span>
+          <span style={{ fontFamily: "sans-serif" }}>↪</span>
+        </button>
+
+        {/* Side Panel toggle button */}
+        <button
+          onClick={toggleSidePanel}
+          className={`header-button ${isSidePanelOpen ? "active" : ""}`}
+          title="Open side panel with Input/Output and Technical Info"
+        >
+          <span
+            style={{
+              fontFamily: "sans-serif",
+              fontSize: "20px",
+              display: "flex",
+              alignItems: "center",
+              gap: "2px",
+            }}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+          </span>
+        </button>
+
+        {/* Export PDF button */}
+        <button
+          onClick={handleExportPDF}
+          className="header-button pdf-button"
+          title="Export to PDF"
+        >
+          <span style={{ fontFamily: "sans-serif" }}>📄</span>
         </button>
       </div>
 
