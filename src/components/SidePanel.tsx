@@ -3,6 +3,7 @@ import { StageInputOutput, TechnicalInfo } from "../types/stage";
 import InputOutputTable from "./InputOutputTable";
 import TechnicalInfoForm from "./TechnicalInfoForm";
 import sidePanelIcon from "../assets/icons/sidePanelIcon.svg";
+import closeSidePanelIcon from "../assets/icons/closeSidePanelIcon.svg";
 
 interface SidePanelProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
       {/* Panel handle as part of the panel */}
       <div className="panel-tab" onClick={onToggle}>
         <img
-          src={sidePanelIcon}
+          src={isOpen ? closeSidePanelIcon : sidePanelIcon}
           alt="Toggle Panel"
           width="20"
           height="20"
