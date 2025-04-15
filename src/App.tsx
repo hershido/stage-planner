@@ -1071,14 +1071,38 @@ function App() {
             pdf.setFontSize(10);
             pdf.setTextColor(80, 80, 80);
 
+            // Calculate column widths with proper spacing
+            const colPadding = 5; // Add padding inside columns
+            const nameColWidth = 40;
+            const roleColWidth = 40;
+            const phoneColWidth = 35;
+            // Email will use remaining space, no need to calculate width
+
             // Draw table headers with background
             pdf.setFillColor(240, 240, 240);
             pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
 
-            renderTextWithFallback("Name", pageMargin, yPosition);
-            renderTextWithFallback("Role", pageMargin + 50, yPosition);
-            renderTextWithFallback("Phone", pageMargin + 100, yPosition);
-            renderTextWithFallback("Email", pageMargin + 150, yPosition);
+            // Position headers with padding
+            renderTextWithFallback("Name", pageMargin + colPadding, yPosition);
+            renderTextWithFallback(
+              "Role",
+              pageMargin + nameColWidth + colPadding,
+              yPosition
+            );
+            renderTextWithFallback(
+              "Phone",
+              pageMargin + nameColWidth + roleColWidth + colPadding,
+              yPosition
+            );
+            renderTextWithFallback(
+              "Email",
+              pageMargin +
+                nameColWidth +
+                roleColWidth +
+                phoneColWidth +
+                colPadding,
+              yPosition
+            );
             yPosition += 2;
 
             // Draw horizontal line
@@ -1102,22 +1126,33 @@ function App() {
                 pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
 
-              renderTextWithFallback(person.name || "-", pageMargin, yPosition);
+              // Add cell data with proper padding
+              renderTextWithFallback(
+                person.name || "-",
+                pageMargin + colPadding,
+                yPosition
+              );
               renderTextWithFallback(
                 person.role || "-",
-                pageMargin + 50,
+                pageMargin + nameColWidth + colPadding,
                 yPosition
               );
               renderTextWithFallback(
                 person.phone || "-",
-                pageMargin + 100,
+                pageMargin + nameColWidth + roleColWidth + colPadding,
                 yPosition
               );
-              renderTextWithFallback(
-                person.email || "-",
-                pageMargin + 150,
-                yPosition
-              );
+
+              // For email - simply display the full email without wrapping or truncation
+              const emailText = person.email || "-";
+              const emailX =
+                pageMargin +
+                nameColWidth +
+                roleColWidth +
+                phoneColWidth +
+                colPadding;
+              renderTextWithFallback(emailText, emailX, yPosition);
+
               yPosition += 7;
             });
 
@@ -1243,22 +1278,40 @@ function App() {
             // Set up table headers
             pdf.setFontSize(10);
 
+            // Calculate column widths with proper spacing for inputs
+            const colPadding = 5; // Add padding inside columns
+            const numColWidth = 15;
+            const nameColWidth = contentWidth - 110;
+            const channelColWidth = 60;
+
             // Add header background
             pdf.setFillColor(240, 240, 240);
             pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
 
-            // Draw table headers
+            // Draw table headers with padding
             pdf.setTextColor(80, 80, 80);
-            renderTextWithFallback("Input #", pageMargin, yPosition);
-            renderTextWithFallback("Channel Name", pageMargin + 20, yPosition);
+            renderTextWithFallback(
+              "Input #",
+              pageMargin + colPadding,
+              yPosition
+            );
+            renderTextWithFallback(
+              "Channel Name",
+              pageMargin + numColWidth + colPadding,
+              yPosition
+            );
             renderTextWithFallback(
               "Mic/DI Type",
-              pageMargin + contentWidth - 90,
+              pageMargin + numColWidth + nameColWidth + colPadding,
               yPosition
             );
             renderTextWithFallback(
               "Stand Type",
-              pageMargin + contentWidth - 30,
+              pageMargin +
+                numColWidth +
+                nameColWidth +
+                channelColWidth +
+                colPadding,
               yPosition
             );
             yPosition += 2;
@@ -1286,22 +1339,46 @@ function App() {
 
               renderTextWithFallback(
                 input.number.toString(),
-                pageMargin,
+                pageMargin + colPadding,
                 yPosition
               );
-              renderTextWithFallback(
-                input.name || "-",
-                pageMargin + 20,
-                yPosition
-              );
+
+              // Limit name text if it's too long
+              const nameText = input.name || "-";
+              if (
+                pdf.getStringUnitWidth(nameText) * 10 >
+                nameColWidth - colPadding * 2
+              ) {
+                const maxChars = Math.floor(
+                  (nameColWidth - colPadding * 2) /
+                    (pdf.getStringUnitWidth("a") * 10)
+                );
+                const truncatedName = nameText.substring(0, maxChars) + "...";
+                renderTextWithFallback(
+                  truncatedName,
+                  pageMargin + numColWidth + colPadding,
+                  yPosition
+                );
+              } else {
+                renderTextWithFallback(
+                  nameText,
+                  pageMargin + numColWidth + colPadding,
+                  yPosition
+                );
+              }
+
               renderTextWithFallback(
                 input.channelType || "-",
-                pageMargin + contentWidth - 90,
+                pageMargin + numColWidth + nameColWidth + colPadding,
                 yPosition
               );
               renderTextWithFallback(
                 input.standType || "-",
-                pageMargin + contentWidth - 30,
+                pageMargin +
+                  numColWidth +
+                  nameColWidth +
+                  channelColWidth +
+                  colPadding,
                 yPosition
               );
               yPosition += 7;
@@ -1329,17 +1406,30 @@ function App() {
             // Set up table headers
             pdf.setFontSize(10);
 
+            // Calculate column widths with proper spacing for outputs
+            const colPadding = 5; // Add padding inside columns
+            const numColWidth = 15;
+            const nameColWidth = contentWidth - 70;
+
             // Add header background
             pdf.setFillColor(240, 240, 240);
             pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
 
-            // Draw table headers
+            // Draw table headers with padding
             pdf.setTextColor(80, 80, 80);
-            renderTextWithFallback("Output #", pageMargin, yPosition);
-            renderTextWithFallback("Channel Name", pageMargin + 20, yPosition);
+            renderTextWithFallback(
+              "Output #",
+              pageMargin + colPadding,
+              yPosition
+            );
+            renderTextWithFallback(
+              "Channel Name",
+              pageMargin + numColWidth + colPadding,
+              yPosition
+            );
             renderTextWithFallback(
               "Monitor Type",
-              pageMargin + contentWidth - 60,
+              pageMargin + numColWidth + nameColWidth + colPadding,
               yPosition
             );
             yPosition += 2;
@@ -1367,17 +1457,37 @@ function App() {
 
               renderTextWithFallback(
                 output.number.toString(),
-                pageMargin,
+                pageMargin + colPadding,
                 yPosition
               );
-              renderTextWithFallback(
-                output.name || "-",
-                pageMargin + 20,
-                yPosition
-              );
+
+              // Limit name text if it's too long
+              const nameText = output.name || "-";
+              if (
+                pdf.getStringUnitWidth(nameText) * 10 >
+                nameColWidth - colPadding * 2
+              ) {
+                const maxChars = Math.floor(
+                  (nameColWidth - colPadding * 2) /
+                    (pdf.getStringUnitWidth("a") * 10)
+                );
+                const truncatedName = nameText.substring(0, maxChars) + "...";
+                renderTextWithFallback(
+                  truncatedName,
+                  pageMargin + numColWidth + colPadding,
+                  yPosition
+                );
+              } else {
+                renderTextWithFallback(
+                  nameText,
+                  pageMargin + numColWidth + colPadding,
+                  yPosition
+                );
+              }
+
               renderTextWithFallback(
                 output.monitorType || "-",
-                pageMargin + contentWidth - 60,
+                pageMargin + numColWidth + nameColWidth + colPadding,
                 yPosition
               );
               yPosition += 7;
