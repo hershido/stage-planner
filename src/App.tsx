@@ -1183,36 +1183,129 @@ function App() {
             // Calculate the height needed for text
             pdf.setFontSize(10);
             const splitText = pdf.splitTextToSize(content, contentWidth);
-            const textHeight = splitText.length * 5 + 10;
 
-            // Draw background
-            pdf.rect(
-              pageMargin - 3,
-              yPosition - 5,
-              contentWidth + 6,
-              textHeight,
-              "F"
+            // Calculate how many lines we can fit on current page
+            const lineHeight = 5; // Height per line in mm
+            const padding = 10; // Additional padding
+            const availableHeight = portraitHeight - yPosition - pageMargin;
+            const maxLinesPerPage = Math.floor(
+              (availableHeight - padding) / lineHeight
             );
 
-            // Add border
-            pdf.setDrawColor(230, 230, 230);
-            pdf.rect(
-              pageMargin - 3,
-              yPosition - 5,
-              contentWidth + 6,
-              textHeight,
-              "S"
-            );
+            // If text would exceed page, handle pagination
+            if (splitText.length > maxLinesPerPage) {
+              // First page of text
+              const firstPageLines = splitText.slice(0, maxLinesPerPage);
+              const firstPageHeight =
+                firstPageLines.length * lineHeight + padding;
 
-            // Add text
-            pdf.setTextColor(60, 60, 60);
+              // Draw background for first page content
+              pdf.rect(
+                pageMargin - 3,
+                yPosition - 5,
+                contentWidth + 6,
+                firstPageHeight,
+                "F"
+              );
 
-            // Handle multiline text with potential non-Latin characters
-            splitText.forEach((line: string, i: number) => {
-              renderTextWithFallback(line, pageMargin, yPosition + i * 5);
-            });
+              // Add border
+              pdf.setDrawColor(230, 230, 230);
+              pdf.rect(
+                pageMargin - 3,
+                yPosition - 5,
+                contentWidth + 6,
+                firstPageHeight,
+                "S"
+              );
 
-            yPosition += textHeight + 10;
+              // Add text for first page
+              pdf.setTextColor(60, 60, 60);
+              firstPageLines.forEach((line: string, i: number) => {
+                renderTextWithFallback(
+                  line,
+                  pageMargin,
+                  yPosition + i * lineHeight
+                );
+              });
+
+              // Move to new page for remaining text
+              pdf.addPage("", "portrait");
+              yPosition = addHeader(
+                "Technical Information - Continued",
+                mainTitle
+              );
+
+              // Process remaining lines
+              const remainingLines = splitText.slice(maxLinesPerPage);
+
+              // Draw background for remaining content
+              const remainingHeight =
+                remainingLines.length * lineHeight + padding;
+              pdf.setFillColor(250, 250, 250);
+              pdf.rect(
+                pageMargin - 3,
+                yPosition - 5,
+                contentWidth + 6,
+                remainingHeight,
+                "F"
+              );
+
+              // Add border
+              pdf.setDrawColor(230, 230, 230);
+              pdf.rect(
+                pageMargin - 3,
+                yPosition - 5,
+                contentWidth + 6,
+                remainingHeight,
+                "S"
+              );
+
+              // Add remaining text
+              pdf.setTextColor(60, 60, 60);
+              remainingLines.forEach((line: string, i: number) => {
+                renderTextWithFallback(
+                  line,
+                  pageMargin,
+                  yPosition + i * lineHeight
+                );
+              });
+
+              yPosition += remainingHeight + 10;
+            } else {
+              // Simple case: all text fits on current page
+              const textHeight = splitText.length * lineHeight + padding;
+
+              // Draw background
+              pdf.rect(
+                pageMargin - 3,
+                yPosition - 5,
+                contentWidth + 6,
+                textHeight,
+                "F"
+              );
+
+              // Add border
+              pdf.setDrawColor(230, 230, 230);
+              pdf.rect(
+                pageMargin - 3,
+                yPosition - 5,
+                contentWidth + 6,
+                textHeight,
+                "S"
+              );
+
+              // Add text
+              pdf.setTextColor(60, 60, 60);
+              splitText.forEach((line: string, i: number) => {
+                renderTextWithFallback(
+                  line,
+                  pageMargin,
+                  yPosition + i * lineHeight
+                );
+              });
+
+              yPosition += textHeight + 10;
+            }
 
             return true;
           };
