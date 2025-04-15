@@ -16,10 +16,6 @@ import {
   Category,
   StageInputOutput,
   TechnicalInfo,
-  ConfigItem,
-  StorableConfigItem,
-  CanvasItem,
-  StorableCanvasItem,
   MonitorItem,
 } from "../types/stage";
 
