@@ -16,6 +16,11 @@ import {
   Category,
   StageInputOutput,
   TechnicalInfo,
+  ConfigItem,
+  StorableConfigItem,
+  CanvasItem,
+  StorableCanvasItem,
+  MonitorItem,
 } from "../types/stage";
 
 // For storing in Firestore
@@ -77,6 +82,7 @@ interface StorableTechnicalInfo {
   generalInfo: string;
   houseSystem: string;
   mixingDesk: string | string[];
+  monitors?: MonitorItem[];
   monitoring: string;
   backline: string;
   soundCheck: string;
@@ -241,6 +247,7 @@ function sanitizeTechnicalInfoForFirestore(
     mixingDesk: Array.isArray(technicalInfo.mixingDesk)
       ? technicalInfo.mixingDesk
       : String(technicalInfo.mixingDesk || ""),
+    monitors: technicalInfo.monitors || [],
     monitoring: String(technicalInfo.monitoring || ""),
     backline: String(technicalInfo.backline || ""),
     soundCheck: String(technicalInfo.soundCheck || ""),
@@ -357,6 +364,7 @@ function convertToTechnicalInfo(
     generalInfo: technicalInfo.generalInfo,
     houseSystem: technicalInfo.houseSystem,
     mixingDesk: technicalInfo.mixingDesk,
+    monitors: technicalInfo.monitors || [],
     monitoring: technicalInfo.monitoring,
     backline: technicalInfo.backline,
     soundCheck: technicalInfo.soundCheck,

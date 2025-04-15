@@ -50,13 +50,21 @@ export interface Person {
   email?: string;
 }
 
+export interface MonitorItem {
+  id: string;
+  brand: string;
+  type: string;
+  quantity: number;
+}
+
 export interface TechnicalInfo {
   projectTitle: string;
   personnel: Person[];
   generalInfo: string;
   houseSystem: string;
   mixingDesk: string[] | string;
-  monitoring: string;
+  monitors?: MonitorItem[];
+  monitoring: string; // Keep for backward compatibility and additional notes
   backline: string;
   soundCheck: string;
 }

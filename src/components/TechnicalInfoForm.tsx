@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { TechnicalInfo, Person } from "../types/stage";
+import { TechnicalInfo, Person, MonitorItem } from "../types/stage";
 import { v4 as uuidv4 } from "uuid";
 
 // Expanded list of predefined options for mixing desk dropdown
@@ -77,6 +77,55 @@ const MIXING_DESK_OPTIONS = [
   "Neve VR Series",
 ];
 
+// Predefined monitor types and models
+const MONITOR_TYPES = [
+  "Wedge",
+  "Sidefill",
+  "Drumfill",
+  "In-Ear Monitor",
+  "Floor Monitor",
+  "Personal Monitor",
+  "Headphones",
+];
+
+// Brands and their models
+const MONITOR_BRANDS: Record<string, string[]> = {
+  "d&b audiotechnik": ["M4", "M2", "MAX2", "Q7", "Q10", "B2", "B4"],
+  "Meyer Sound": ["MJF-210", "MJF-212A", "CQ-1", "UPA-1P", "700-HP", "USW-1P"],
+  "L-Acoustics": [
+    "X12",
+    "X15 HiQ",
+    "115XT HiQ",
+    "ARCS II",
+    "ARCS Focus",
+    "Kara",
+    "SB15P",
+    "SB18",
+  ],
+  Adamson: ["M15", "Point 12"],
+  EAW: ["Microwedge", "SB850"],
+  Nexo: ["PS15"],
+  Clair: ["12AM"],
+  JBL: ["SRX712M", "SRX828SP"],
+  QSC: ["K12.2"],
+  Yamaha: ["SM15V"],
+  Shure: ["PSM 1000", "PSM 900", "PSM 300"],
+  Sennheiser: ["EW IEM G4", "2000 IEM", "HD-25", "HD-280 Pro"],
+  "Audio-Technica": ["M3", "ATH-M50x"],
+  Lectrosonics: ["R400A"],
+  "Axient Digital": ["ADX5D"],
+  Behringer: ["Powerplay P1", "Powerplay P2"],
+  "Allen & Heath": ["ME-1", "ME-500"],
+  Roland: ["M-48"],
+  Aviom: ["A360"],
+  Sony: ["MDR-7506"],
+  Beyerdynamic: ["DT 770 Pro"],
+  AKG: ["K240 Studio"],
+};
+
+// Get all available monitor brands
+const MONITOR_BRAND_NAMES = Object.keys(MONITOR_BRANDS);
+
 interface TechnicalInfoFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -98,16 +147,32 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
   const [houseSystem, setHouseSystem] = useState("");
   const [mixingDesk, setMixingDesk] = useState<string[]>([]);
   const [customMixingDesk, setCustomMixingDesk] = useState("");
+  const [monitors, setMonitors] = useState<MonitorItem[]>([]);
   const [monitoring, setMonitoring] = useState("");
   const [backline, setBackline] = useState("");
   const [soundCheck, setSoundCheck] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // For monitor form
+  const [monitorType, setMonitorType] = useState("");
+  const [monitorBrand, setMonitorBrand] = useState("");
+  const [monitorModel, setMonitorModel] = useState("");
+  const [monitorQuantity, setMonitorQuantity] = useState(1);
+  const [monitorTypeSearchQuery, setMonitorTypeSearchQuery] = useState("");
+  const [monitorBrandSearchQuery, setMonitorBrandSearchQuery] = useState("");
+  const [monitorModelSearchQuery, setMonitorModelSearchQuery] = useState("");
+  const [editingMonitorId, setEditingMonitorId] = useState<string | null>(null);
 
   // For personnel form
   const [personName, setPersonName] = useState("");
   const [personRole, setPersonRole] = useState("");
   const [personPhone, setPersonPhone] = useState("");
   const [personEmail, setPersonEmail] = useState("");
+
+  // State to track if dropdowns are open
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
 
   // Initialize form with existing data if available
   useEffect(() => {
@@ -127,6 +192,17 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
         setMixingDesk([]);
       }
 
+      // Initialize monitors array if it exists
+      console.log(
+        "Loading monitors from technicalInfo:",
+        technicalInfo.monitors
+      );
+      if (Array.isArray(technicalInfo.monitors)) {
+        setMonitors(technicalInfo.monitors);
+      } else {
+        setMonitors([]);
+      }
+
       setMonitoring(technicalInfo.monitoring || "");
       setBackline(technicalInfo.backline || "");
       setSoundCheck(technicalInfo.soundCheck || "");
@@ -138,6 +214,7 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
       setHouseSystem("");
       setMixingDesk([]);
       setCustomMixingDesk("");
+      setMonitors([]);
       setMonitoring("");
       setBackline("");
       setSoundCheck("");
@@ -168,14 +245,19 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
       soundCheck !== technicalInfo.soundCheck ||
       // For personnel, check if the array has changed in length or content
       personnel.length !== technicalInfo.personnel?.length ||
-      JSON.stringify(personnel) !== JSON.stringify(technicalInfo.personnel)
+      JSON.stringify(personnel) !== JSON.stringify(technicalInfo.personnel) ||
+      // For monitors, check if the array has changed in length or content
+      monitors.length !== (technicalInfo.monitors?.length || 0) ||
+      JSON.stringify(monitors) !== JSON.stringify(technicalInfo.monitors || [])
     ) {
+      console.log("Saving technical info with monitors:", monitors);
       const newTechnicalInfo: TechnicalInfo = {
         projectTitle,
         personnel,
         generalInfo,
         houseSystem,
         mixingDesk: finalMixingDesks,
+        monitors, // Explicitly include monitors in the saved data
         monitoring,
         backline,
         soundCheck,
@@ -196,6 +278,112 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
     }
   };
 
+  // Add or update a monitor
+  const addMonitor = () => {
+    if (monitorType && monitorQuantity > 0) {
+      const brandModelText =
+        monitorBrand && monitorModel
+          ? `${monitorBrand} ${monitorModel}`
+          : monitorBrand || "";
+
+      const monitorData = {
+        brand: monitorBrand,
+        type: monitorType + (brandModelText ? ` (${brandModelText})` : ""),
+        quantity: monitorQuantity,
+      };
+
+      if (editingMonitorId) {
+        // Update existing monitor
+        setMonitors(
+          monitors.map((monitor) =>
+            monitor.id === editingMonitorId
+              ? { ...monitor, ...monitorData }
+              : monitor
+          )
+        );
+        setEditingMonitorId(null);
+      } else {
+        // Add new monitor
+        const newMonitor: MonitorItem = {
+          id: uuidv4(),
+          ...monitorData,
+        };
+        setMonitors([...monitors, newMonitor]);
+      }
+
+      // Reset form fields
+      resetMonitorForm();
+    }
+  };
+
+  // Reset monitor form fields
+  const resetMonitorForm = () => {
+    setMonitorType("");
+    setMonitorBrand("");
+    setMonitorModel("");
+    setMonitorQuantity(1);
+    setMonitorTypeSearchQuery("");
+    setMonitorBrandSearchQuery("");
+    setMonitorModelSearchQuery("");
+    setEditingMonitorId(null);
+  };
+
+  // Start editing a monitor
+  const editMonitor = (monitor: MonitorItem) => {
+    // Extract type and possibly brand and model from the monitor.type
+    let extractedType = monitor.type;
+    let extractedBrand = monitor.brand || "";
+    let extractedModel = "";
+
+    // Check if the type contains brand/model information in parentheses
+    const matches = monitor.type.match(/(.*?)\s*\((.*)\)/);
+    if (matches && matches.length > 2) {
+      extractedType = matches[1].trim();
+      const brandModelText = matches[2].trim();
+
+      // If we have a brand from the monitor object, use it
+      if (monitor.brand) {
+        // Try to extract model by removing brand from brandModelText
+        if (brandModelText.startsWith(monitor.brand)) {
+          extractedModel = brandModelText
+            .substring(monitor.brand.length)
+            .trim();
+        }
+      } else {
+        // Try to extract brand and model from brandModelText
+        const parts = brandModelText.split(" ");
+        if (parts.length > 1) {
+          extractedBrand = parts[0];
+          extractedModel = parts.slice(1).join(" ");
+        } else {
+          extractedBrand = brandModelText;
+        }
+      }
+    }
+
+    // Populate form with extracted values
+    setMonitorType(extractedType);
+    setMonitorBrand(extractedBrand);
+    setMonitorModel(extractedModel);
+    setMonitorQuantity(monitor.quantity);
+    setEditingMonitorId(monitor.id);
+
+    // Scroll to the form section
+    document
+      .getElementById("monitor-form")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    resetMonitorForm();
+  };
+
+  // Remove a monitor
+  const removeMonitor = (id: string) => {
+    setMonitors(monitors.filter((monitor) => monitor.id !== id));
+  };
+
   // Update data when any field changes - using a timeout to avoid too frequent updates
   useEffect(() => {
     if (isOpen) {
@@ -213,6 +401,7 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
     houseSystem,
     mixingDesk,
     customMixingDesk,
+    monitors, // Explicitly include monitors in dependencies
     monitoring,
     backline,
     soundCheck,
@@ -245,6 +434,35 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
   const filteredMixingDesks = MIXING_DESK_OPTIONS.filter((desk) =>
     desk.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Handler for selecting a monitor type
+  const handleMonitorTypeSelect = (type: string) => {
+    setMonitorType(type);
+    setMonitorTypeSearchQuery("");
+    setIsTypeDropdownOpen(false);
+    // Clear brand and model when type changes
+    setMonitorBrand("");
+    setMonitorModel("");
+    setMonitorBrandSearchQuery("");
+    setMonitorModelSearchQuery("");
+  };
+
+  // Handler for selecting a monitor brand
+  const handleMonitorBrandSelect = (brand: string) => {
+    setMonitorBrand(brand);
+    setMonitorBrandSearchQuery("");
+    setIsBrandDropdownOpen(false);
+    // Clear model when brand changes
+    setMonitorModel("");
+    setMonitorModelSearchQuery("");
+  };
+
+  // Handler for selecting a monitor model
+  const handleMonitorModelSelect = (model: string) => {
+    setMonitorModel(model);
+    setMonitorModelSearchQuery("");
+    setIsModelDropdownOpen(false);
+  };
 
   if (!isOpen) return null;
 
@@ -672,7 +890,573 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
           </div>
         </div>
 
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: "30px" }}>
+          <h3 style={{ marginBottom: "15px", fontWeight: 300 }}>Monitors</h3>
+
+          {/* Monitor table */}
+          {monitors.length > 0 && (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                marginBottom: "15px",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+              }}
+            >
+              <thead>
+                <tr
+                  style={{
+                    borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                  }}
+                >
+                  <th style={{ padding: "8px", textAlign: "left" }}>Brand</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>
+                    Type/Model
+                  </th>
+                  <th style={{ padding: "8px", textAlign: "center" }}>
+                    Quantity
+                  </th>
+                  <th style={{ padding: "8px", textAlign: "center" }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {monitors.map((monitor) => (
+                  <tr
+                    key={monitor.id}
+                    style={{
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                      backgroundColor:
+                        editingMonitorId === monitor.id
+                          ? "rgba(52, 152, 219, 0.1)"
+                          : "transparent",
+                    }}
+                  >
+                    <td style={{ padding: "8px" }}>{monitor.brand}</td>
+                    <td style={{ padding: "8px" }}>{monitor.type}</td>
+                    <td style={{ padding: "8px", textAlign: "center" }}>
+                      {monitor.quantity}
+                    </td>
+                    <td style={{ padding: "8px", textAlign: "center" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <button
+                          onClick={() => editMonitor(monitor)}
+                          style={{
+                            backgroundColor: "transparent",
+                            color: "white",
+                            border: "1px solid rgba(255, 255, 255, 0.3)",
+                            padding: "5px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "30px",
+                            height: "30px",
+                          }}
+                          title="Edit monitor"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => removeMonitor(monitor.id)}
+                          style={{
+                            backgroundColor: "transparent",
+                            color: "white",
+                            border: "1px solid rgba(255, 255, 255, 0.3)",
+                            padding: "5px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "30px",
+                            height: "30px",
+                          }}
+                          title="Remove monitor"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* Add monitor form */}
+          <div
+            id="monitor-form"
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginBottom: "20px",
+              flexWrap: "wrap",
+              alignItems: "flex-start",
+              backgroundColor: editingMonitorId
+                ? "rgba(52, 152, 219, 0.05)"
+                : "transparent",
+              padding: editingMonitorId ? "15px" : "0",
+              borderRadius: "4px",
+            }}
+          >
+            {/* Monitor Type Dropdown (First and required) */}
+            <div style={{ flex: "1", minWidth: "150px", position: "relative" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontSize: "12px",
+                }}
+              >
+                Type (required):
+              </label>
+              <input
+                type="text"
+                value={monitorType || monitorTypeSearchQuery}
+                onChange={(e) => {
+                  setMonitorTypeSearchQuery(e.target.value);
+                  setMonitorType(e.target.value);
+                }}
+                placeholder="Monitor type (e.g., Wedge, IEM)"
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  backgroundColor: "rgba(0, 0, 0, 0.3)",
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "4px",
+                }}
+                onFocus={() => {
+                  setIsTypeDropdownOpen(true);
+                  // Always show all options on focus
+                  setMonitorTypeSearchQuery("");
+                }}
+                onBlur={() => {
+                  setTimeout(() => setIsTypeDropdownOpen(false), 200);
+                }}
+              />
+              {/* Dropdown button */}
+              <div
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "calc(50% + 11px)",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  color: "white",
+                  fontSize: "16px",
+                }}
+                onClick={() => {
+                  setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                  if (!isTypeDropdownOpen) {
+                    // Always show all options when opening dropdown
+                    setMonitorTypeSearchQuery("");
+                  }
+                }}
+              >
+                ▼
+              </div>
+              {/* Dropdown for monitor types */}
+              {isTypeDropdownOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.9)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                    borderRadius: "4px",
+                    zIndex: 10,
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {MONITOR_TYPES.filter((type) =>
+                    type
+                      .toLowerCase()
+                      .includes(monitorTypeSearchQuery.toLowerCase())
+                  ).map((type) => (
+                    <div
+                      key={type}
+                      style={{
+                        padding: "8px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        color: "white",
+                        backgroundColor:
+                          type === monitorType
+                            ? "rgba(52, 152, 219, 0.3)"
+                            : "transparent",
+                      }}
+                      onClick={() => handleMonitorTypeSelect(type)}
+                    >
+                      {type}
+                    </div>
+                  ))}
+                  {MONITOR_TYPES.filter((type) =>
+                    type
+                      .toLowerCase()
+                      .includes(monitorTypeSearchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div
+                      style={{
+                        padding: "8px",
+                        color: "rgba(255, 255, 255, 0.6)",
+                      }}
+                    >
+                      No matching types. Using custom value.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Brand Dropdown (optional) */}
+            <div style={{ flex: "1", minWidth: "150px", position: "relative" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontSize: "12px",
+                }}
+              >
+                Brand (optional):
+              </label>
+              <input
+                type="text"
+                value={monitorBrand || monitorBrandSearchQuery}
+                onChange={(e) => {
+                  setMonitorBrandSearchQuery(e.target.value);
+                  setMonitorBrand(e.target.value);
+                }}
+                placeholder="Brand name (e.g., JBL)"
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  backgroundColor: "rgba(0, 0, 0, 0.3)",
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "4px",
+                }}
+                onFocus={() => {
+                  setIsBrandDropdownOpen(true);
+                  // Always show all options on focus
+                  setMonitorBrandSearchQuery("");
+                }}
+                onBlur={() => {
+                  setTimeout(() => setIsBrandDropdownOpen(false), 200);
+                }}
+              />
+              {/* Dropdown button */}
+              <div
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "calc(50% + 11px)",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  color: "white",
+                  fontSize: "16px",
+                }}
+                onClick={() => {
+                  setIsBrandDropdownOpen(!isBrandDropdownOpen);
+                  if (!isBrandDropdownOpen) {
+                    // Always show all options when opening dropdown
+                    setMonitorBrandSearchQuery("");
+                  }
+                }}
+              >
+                ▼
+              </div>
+              {/* Dropdown for brands */}
+              {isBrandDropdownOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.9)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                    borderRadius: "4px",
+                    zIndex: 10,
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {MONITOR_BRAND_NAMES.filter((brand) =>
+                    brand
+                      .toLowerCase()
+                      .includes(monitorBrandSearchQuery.toLowerCase())
+                  ).map((brand) => (
+                    <div
+                      key={brand}
+                      style={{
+                        padding: "8px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        color: "white",
+                        backgroundColor:
+                          brand === monitorBrand
+                            ? "rgba(52, 152, 219, 0.3)"
+                            : "transparent",
+                      }}
+                      onClick={() => handleMonitorBrandSelect(brand)}
+                    >
+                      {brand}
+                    </div>
+                  ))}
+                  {MONITOR_BRAND_NAMES.filter((brand) =>
+                    brand
+                      .toLowerCase()
+                      .includes(monitorBrandSearchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div
+                      style={{
+                        padding: "8px",
+                        color: "rgba(255, 255, 255, 0.6)",
+                      }}
+                    >
+                      No matching brands. Using custom value.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Model Dropdown - only relevant if a brand is selected */}
+            <div style={{ flex: "1", minWidth: "150px", position: "relative" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontSize: "12px",
+                }}
+              >
+                Model (optional):
+              </label>
+              <input
+                type="text"
+                value={monitorModel || monitorModelSearchQuery}
+                onChange={(e) => {
+                  setMonitorModelSearchQuery(e.target.value);
+                  setMonitorModel(e.target.value);
+                }}
+                placeholder={
+                  monitorBrand
+                    ? `Model for ${monitorBrand}`
+                    : "Model (select brand first)"
+                }
+                disabled={!monitorBrand}
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  backgroundColor: "rgba(0, 0, 0, 0.3)",
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "4px",
+                  opacity: !monitorBrand ? 0.7 : 1,
+                }}
+                onFocus={() => {
+                  if (monitorBrand) {
+                    setIsModelDropdownOpen(true);
+                    // Always show all options on focus
+                    setMonitorModelSearchQuery("");
+                  }
+                }}
+                onBlur={() => {
+                  setTimeout(() => setIsModelDropdownOpen(false), 200);
+                }}
+              />
+              {/* Dropdown button - only shown if brand is selected */}
+              {monitorBrand && (
+                <div
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    top: "calc(50% + 11px)",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "white",
+                    fontSize: "16px",
+                  }}
+                  onClick={() => {
+                    if (monitorBrand) {
+                      setIsModelDropdownOpen(!isModelDropdownOpen);
+                      if (!isModelDropdownOpen) {
+                        // Always show all options when opening dropdown
+                        setMonitorModelSearchQuery("");
+                      }
+                    }
+                  }}
+                >
+                  ▼
+                </div>
+              )}
+              {/* Dropdown for monitor models */}
+              {monitorBrand && isModelDropdownOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.9)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                    borderRadius: "4px",
+                    zIndex: 10,
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {MONITOR_BRANDS[monitorBrand] &&
+                    MONITOR_BRANDS[monitorBrand]
+                      .filter((model) =>
+                        model
+                          .toLowerCase()
+                          .includes(monitorModelSearchQuery.toLowerCase())
+                      )
+                      .map((model) => (
+                        <div
+                          key={model}
+                          style={{
+                            padding: "8px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                            color: "white",
+                            backgroundColor:
+                              model === monitorModel
+                                ? "rgba(52, 152, 219, 0.3)"
+                                : "transparent",
+                          }}
+                          onClick={() => handleMonitorModelSelect(model)}
+                        >
+                          {model}
+                        </div>
+                      ))}
+                  {(!MONITOR_BRANDS[monitorBrand] ||
+                    MONITOR_BRANDS[monitorBrand].filter((model) =>
+                      model
+                        .toLowerCase()
+                        .includes(monitorModelSearchQuery.toLowerCase())
+                    ).length === 0) && (
+                    <div
+                      style={{
+                        padding: "8px",
+                        color: "rgba(255, 255, 255, 0.6)",
+                      }}
+                    >
+                      No matching models. Using custom value.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Quantity input */}
+            <div style={{ width: "100px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontSize: "12px",
+                }}
+              >
+                Quantity:
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={monitorQuantity}
+                onChange={(e) =>
+                  setMonitorQuantity(parseInt(e.target.value) || 1)
+                }
+                placeholder="Quantity"
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  backgroundColor: "rgba(0, 0, 0, 0.3)",
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "4px",
+                }}
+              />
+            </div>
+
+            {/* Add/Update and Cancel buttons */}
+            <div style={{ width: editingMonitorId ? "200px" : "150px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontSize: "12px",
+                  opacity: 0,
+                }}
+              >
+                Actions
+              </label>
+              <div style={{ display: "flex", gap: "10px", height: "35px" }}>
+                <button
+                  onClick={addMonitor}
+                  disabled={!monitorType || monitorQuantity < 1}
+                  style={{
+                    flex: "1",
+                    padding: "8px 10px",
+                    backgroundColor:
+                      !monitorType || monitorQuantity < 1
+                        ? "rgba(52, 152, 219, 0.3)"
+                        : "rgba(52, 152, 219, 0.8)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor:
+                      !monitorType || monitorQuantity < 1
+                        ? "not-allowed"
+                        : "pointer",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    fontSize: "14px",
+                  }}
+                >
+                  {editingMonitorId ? "Update" : "Add"}
+                </button>
+
+                {editingMonitorId && (
+                  <button
+                    onClick={cancelEditing}
+                    style={{
+                      flex: "1",
+                      padding: "8px 10px",
+                      backgroundColor: "rgba(150, 150, 150, 0.5)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           <label
             htmlFor="monitoring"
             style={{
@@ -681,7 +1465,7 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
               fontWeight: 500,
             }}
           >
-            Monitoring:
+            Additional Monitoring Notes:
           </label>
           <textarea
             id="monitoring"
@@ -697,7 +1481,7 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
               borderRadius: "4px",
               resize: "vertical",
             }}
-            placeholder="Enter monitoring details"
+            placeholder="Enter additional monitoring details"
           />
         </div>
 
