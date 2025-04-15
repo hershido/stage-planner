@@ -950,11 +950,39 @@ function App() {
         // Calculate dimensions to fit the stage properly in the PDF
         const imgData = canvas.toDataURL("image/png", 1.0); // Use max quality
 
-        // Create PDF starting with portrait orientation for technical info
+        // Create PDF starting with portrait orientation for technical info with UTF-8 support
         const pdf = new jsPDF({
           orientation: "portrait",
           unit: "mm",
+          hotfixes: ["px_scaling"], // Add hotfixes to improve text handling
+          putOnlyUsedFonts: true,
+          compress: true,
         });
+
+        // Helper function to safely render text with potential non-Latin characters
+        const renderTextWithFallback = (
+          text: string,
+          x: number,
+          y: number,
+          options?: { align: "center" | "right" | "left" | "justify" }
+        ) => {
+          try {
+            // Try to render with default fonts
+            pdf.text(text, x, y, options);
+          } catch (e) {
+            console.warn(
+              "Error rendering text, falling back to basic characters:",
+              e
+            );
+            // Fallback to only ASCII characters if rendering fails
+            pdf.text(
+              text.replace(/[^\x20-\x7E]/g, "?"), // Replace non-ASCII with question marks
+              x,
+              y,
+              options
+            );
+          }
+        };
 
         // Define common styles and margins
         const pageMargin = 15; // mm, increased from 10mm
@@ -966,7 +994,7 @@ function App() {
           pdf.setPage(pageNum);
           pdf.setFontSize(9);
           pdf.setTextColor(100, 100, 100);
-          pdf.text(
+          renderTextWithFallback(
             `Page ${pageNum} of ${totalPages}`,
             pdf.internal.pageSize.getWidth() / 2,
             pdf.internal.pageSize.getHeight() - 7,
@@ -975,7 +1003,7 @@ function App() {
 
           // Add generated timestamp
           const timestamp = new Date().toLocaleString();
-          pdf.text(
+          renderTextWithFallback(
             `Generated: ${timestamp}`,
             pdf.internal.pageSize.getWidth() - pageMargin,
             pdf.internal.pageSize.getHeight() - 7,
@@ -984,7 +1012,7 @@ function App() {
 
           // Add project name at bottom left
           if (currentConfigName) {
-            pdf.text(
+            renderTextWithFallback(
               currentConfigName,
               pageMargin,
               pdf.internal.pageSize.getHeight() - 7,
@@ -1009,13 +1037,15 @@ function App() {
           // Add title
           pdf.setFontSize(16);
           pdf.setTextColor(60, 60, 60);
-          pdf.text(title, pageWidth / 2, 15, { align: "center" });
+          renderTextWithFallback(title, pageWidth / 2, 15, { align: "center" });
 
           // Add subtitle if provided
           if (subtitle) {
             pdf.setFontSize(10);
             pdf.setTextColor(100, 100, 100);
-            pdf.text(subtitle, pageWidth / 2, 22, { align: "center" });
+            renderTextWithFallback(subtitle, pageWidth / 2, 22, {
+              align: "center",
+            });
           }
 
           return 35; // Return the Y position after the header
@@ -1034,7 +1064,7 @@ function App() {
           if (technicalInfo.personnel && technicalInfo.personnel.length > 0) {
             pdf.setFontSize(14);
             pdf.setTextColor(50, 50, 50);
-            pdf.text("Personnel", pageMargin, yPosition);
+            renderTextWithFallback("Personnel", pageMargin, yPosition);
             yPosition += 8;
 
             // Create personnel table
@@ -1045,10 +1075,10 @@ function App() {
             pdf.setFillColor(240, 240, 240);
             pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
 
-            pdf.text("Name", pageMargin, yPosition);
-            pdf.text("Role", pageMargin + 50, yPosition);
-            pdf.text("Phone", pageMargin + 100, yPosition);
-            pdf.text("Email", pageMargin + 150, yPosition);
+            renderTextWithFallback("Name", pageMargin, yPosition);
+            renderTextWithFallback("Role", pageMargin + 50, yPosition);
+            renderTextWithFallback("Phone", pageMargin + 100, yPosition);
+            renderTextWithFallback("Email", pageMargin + 150, yPosition);
             yPosition += 2;
 
             // Draw horizontal line
@@ -1072,10 +1102,22 @@ function App() {
                 pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
 
-              pdf.text(person.name || "-", pageMargin, yPosition);
-              pdf.text(person.role || "-", pageMargin + 50, yPosition);
-              pdf.text(person.phone || "-", pageMargin + 100, yPosition);
-              pdf.text(person.email || "-", pageMargin + 150, yPosition);
+              renderTextWithFallback(person.name || "-", pageMargin, yPosition);
+              renderTextWithFallback(
+                person.role || "-",
+                pageMargin + 50,
+                yPosition
+              );
+              renderTextWithFallback(
+                person.phone || "-",
+                pageMargin + 100,
+                yPosition
+              );
+              renderTextWithFallback(
+                person.email || "-",
+                pageMargin + 150,
+                yPosition
+              );
               yPosition += 7;
             });
 
@@ -1097,7 +1139,7 @@ function App() {
 
             pdf.setFontSize(14);
             pdf.setTextColor(50, 50, 50);
-            pdf.text(title, pageMargin, yPosition);
+            renderTextWithFallback(title, pageMargin, yPosition);
             yPosition += 8;
 
             // Add a light background for the section content
@@ -1129,7 +1171,12 @@ function App() {
 
             // Add text
             pdf.setTextColor(60, 60, 60);
-            pdf.text(splitText, pageMargin, yPosition);
+
+            // Handle multiline text with potential non-Latin characters
+            splitText.forEach((line: string, i: number) => {
+              renderTextWithFallback(line, pageMargin, yPosition + i * 5);
+            });
+
             yPosition += textHeight + 10;
 
             return true;
@@ -1182,7 +1229,7 @@ function App() {
             yPosition += 15;
             pdf.setFontSize(14);
             pdf.setTextColor(50, 50, 50);
-            pdf.text("Input/Output Lists", pageMargin, yPosition);
+            renderTextWithFallback("Input/Output Lists", pageMargin, yPosition);
             yPosition += 10;
           }
 
@@ -1190,7 +1237,7 @@ function App() {
           if (inputOutput.inputs.length > 0) {
             pdf.setFontSize(12);
             pdf.setTextColor(50, 50, 50);
-            pdf.text("Input List", pageMargin, yPosition);
+            renderTextWithFallback("Input List", pageMargin, yPosition);
             yPosition += 8;
 
             // Set up table headers
@@ -1202,10 +1249,18 @@ function App() {
 
             // Draw table headers
             pdf.setTextColor(80, 80, 80);
-            pdf.text("Input #", pageMargin, yPosition);
-            pdf.text("Channel Name", pageMargin + 20, yPosition);
-            pdf.text("Mic/DI Type", pageMargin + contentWidth - 90, yPosition);
-            pdf.text("Stand Type", pageMargin + contentWidth - 30, yPosition);
+            renderTextWithFallback("Input #", pageMargin, yPosition);
+            renderTextWithFallback("Channel Name", pageMargin + 20, yPosition);
+            renderTextWithFallback(
+              "Mic/DI Type",
+              pageMargin + contentWidth - 90,
+              yPosition
+            );
+            renderTextWithFallback(
+              "Stand Type",
+              pageMargin + contentWidth - 30,
+              yPosition
+            );
             yPosition += 2;
 
             // Draw horizontal line under headers
@@ -1229,14 +1284,22 @@ function App() {
                 pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
 
-              pdf.text(input.number.toString(), pageMargin, yPosition);
-              pdf.text(input.name || "-", pageMargin + 20, yPosition);
-              pdf.text(
+              renderTextWithFallback(
+                input.number.toString(),
+                pageMargin,
+                yPosition
+              );
+              renderTextWithFallback(
+                input.name || "-",
+                pageMargin + 20,
+                yPosition
+              );
+              renderTextWithFallback(
                 input.channelType || "-",
                 pageMargin + contentWidth - 90,
                 yPosition
               );
-              pdf.text(
+              renderTextWithFallback(
                 input.standType || "-",
                 pageMargin + contentWidth - 30,
                 yPosition
@@ -1260,7 +1323,7 @@ function App() {
 
             pdf.setFontSize(12);
             pdf.setTextColor(50, 50, 50);
-            pdf.text("Output List", pageMargin, yPosition);
+            renderTextWithFallback("Output List", pageMargin, yPosition);
             yPosition += 8;
 
             // Set up table headers
@@ -1272,9 +1335,13 @@ function App() {
 
             // Draw table headers
             pdf.setTextColor(80, 80, 80);
-            pdf.text("Output #", pageMargin, yPosition);
-            pdf.text("Channel Name", pageMargin + 20, yPosition);
-            pdf.text("Monitor Type", pageMargin + contentWidth - 60, yPosition);
+            renderTextWithFallback("Output #", pageMargin, yPosition);
+            renderTextWithFallback("Channel Name", pageMargin + 20, yPosition);
+            renderTextWithFallback(
+              "Monitor Type",
+              pageMargin + contentWidth - 60,
+              yPosition
+            );
             yPosition += 2;
 
             // Draw horizontal line under headers
@@ -1298,9 +1365,17 @@ function App() {
                 pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
 
-              pdf.text(output.number.toString(), pageMargin, yPosition);
-              pdf.text(output.name || "-", pageMargin + 20, yPosition);
-              pdf.text(
+              renderTextWithFallback(
+                output.number.toString(),
+                pageMargin,
+                yPosition
+              );
+              renderTextWithFallback(
+                output.name || "-",
+                pageMargin + 20,
+                yPosition
+              );
+              renderTextWithFallback(
                 output.monitorType || "-",
                 pageMargin + contentWidth - 60,
                 yPosition
