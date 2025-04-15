@@ -43,6 +43,9 @@ const SidePanel: React.FC<SidePanelProps> = ({
           height="20"
           style={{ filter: "brightness(0) invert(1)" }}
         />
+        <div className="panel-tab-text">
+          <span>I/O & Technical</span>
+        </div>
       </div>
 
       {/* Panel Content */}

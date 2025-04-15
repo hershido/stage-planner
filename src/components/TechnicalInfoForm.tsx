@@ -667,8 +667,8 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
           />
         </div>
 
-        <div style={{ marginTop: "20px", textAlign: "right" }}>
-          {!isEmbedded && (
+        {!isEmbedded && (
+          <div style={{ marginTop: "20px", textAlign: "right" }}>
             <button
               type="button"
               onClick={onClose}
@@ -682,23 +682,10 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
                 cursor: "pointer",
               }}
             >
-              Cancel
+              Close
             </button>
-          )}
-          <button
-            type="submit"
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#0074e8",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            {isEmbedded ? "Apply Changes" : "Save Changes"}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
