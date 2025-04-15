@@ -949,62 +949,21 @@ function App() {
       .then((canvas) => {
         // Calculate dimensions to fit the stage properly in the PDF
         const imgData = canvas.toDataURL("image/png", 1.0); // Use max quality
+
+        // Create PDF starting with portrait orientation for technical info
         const pdf = new jsPDF({
-          orientation: "landscape",
+          orientation: "portrait",
           unit: "mm",
         });
 
-        // Get PDF dimensions
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
+        // Get portrait page dimensions
+        const portraitWidth = pdf.internal.pageSize.getWidth();
+        const portraitHeight = pdf.internal.pageSize.getHeight();
 
-        // Calculate the image dimensions while preserving aspect ratio
-        const canvasRatio = canvas.width / canvas.height;
+        let yPosition = 20; // Starting Y position
 
-        // Set margins
-        const margin = 10; // mm
-        const maxWidth = pdfWidth - margin * 2;
-        const maxHeight = pdfHeight - margin * 2;
-
-        // Determine dimensions based on aspect ratio
-        let imgWidth, imgHeight;
-
-        if (canvasRatio > maxWidth / maxHeight) {
-          // Image is wider than the available space (width limited)
-          imgWidth = maxWidth;
-          imgHeight = imgWidth / canvasRatio;
-        } else {
-          // Image is taller than the available space (height limited)
-          imgHeight = maxHeight;
-          imgWidth = imgHeight * canvasRatio;
-        }
-
-        // Center the image on the page
-        const xPos = margin + (maxWidth - imgWidth) / 2;
-
-        // Center vertically on the page with equal margins
-        const yPos = (pdfHeight - imgHeight) / 2;
-
-        // Add the stage image to the PDF with minimal compression
-        pdf.addImage({
-          imageData: imgData,
-          format: "PNG",
-          x: xPos,
-          y: yPos,
-          width: imgWidth,
-          height: imgHeight,
-          compression: "NONE", // Better quality with no compression
-        });
-
-        // Add Technical Info to the PDF if it exists
+        // 1. FIRST ADD TECHNICAL INFO
         if (technicalInfo) {
-          // Add technical info page
-          pdf.addPage("", "portrait");
-
-          // Get portrait page dimensions
-          const portraitWidth = pdf.internal.pageSize.getWidth();
-          let yPosition = 20; // Starting Y position
-
           // Add page title
           pdf.setFontSize(18);
           pdf.setTextColor(0, 0, 0);
@@ -1114,20 +1073,18 @@ function App() {
             addSection("Sound Check", technicalInfo.soundCheck);
         }
 
-        // Add Input/Output tables to the PDF if they exist
+        // 2. THEN ADD INPUT/OUTPUT LISTS
         if (
           inputOutput &&
           (inputOutput.inputs.length > 0 || inputOutput.outputs.length > 0)
         ) {
-          // Create a new PDF in portrait orientation for the I/O tables
-          // Add a new page in portrait orientation for I/O tables
-          pdf.addPage("", "portrait");
-
-          // Get portrait page dimensions
-          const portraitWidth = pdf.internal.pageSize.getWidth();
-          const portraitHeight = pdf.internal.pageSize.getHeight();
-
-          let yPosition = 20; // Starting Y position with more space at top
+          // Add a new page in portrait orientation for I/O tables if needed
+          if (yPosition > portraitHeight - 100) {
+            pdf.addPage("", "portrait");
+            yPosition = 20;
+          } else {
+            yPosition += 20; // Add some spacing
+          }
 
           // Add page title
           pdf.setFontSize(16);
@@ -1226,6 +1183,52 @@ function App() {
             });
           }
         }
+
+        // 3. FINALLY ADD THE STAGE DIAGRAM
+        // Add the stage as the last page in landscape orientation
+        pdf.addPage("", "landscape");
+
+        // Get landscape page dimensions
+        const landscapeWidth = pdf.internal.pageSize.getWidth();
+        const landscapeHeight = pdf.internal.pageSize.getHeight();
+
+        // Calculate the image dimensions while preserving aspect ratio
+        const canvasRatio = canvas.width / canvas.height;
+
+        // Set margins
+        const margin = 10; // mm
+        const maxWidth = landscapeWidth - margin * 2;
+        const maxHeight = landscapeHeight - margin * 2;
+
+        // Determine dimensions based on aspect ratio
+        let imgWidth, imgHeight;
+
+        if (canvasRatio > maxWidth / maxHeight) {
+          // Image is wider than the available space (width limited)
+          imgWidth = maxWidth;
+          imgHeight = imgWidth / canvasRatio;
+        } else {
+          // Image is taller than the available space (height limited)
+          imgHeight = maxHeight;
+          imgWidth = imgHeight * canvasRatio;
+        }
+
+        // Center the image on the page
+        const xPos = margin + (maxWidth - imgWidth) / 2;
+
+        // Center vertically on the page with equal margins
+        const yPos = (landscapeHeight - imgHeight) / 2;
+
+        // Add the stage image to the PDF with minimal compression
+        pdf.addImage({
+          imageData: imgData,
+          format: "PNG",
+          x: xPos,
+          y: yPos,
+          width: imgWidth,
+          height: imgHeight,
+          compression: "NONE", // Better quality with no compression
+        });
 
         // Generate the filename with configuration name and date
         const currentDate = new Date().toLocaleDateString().replace(/\//g, "-");
