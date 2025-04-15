@@ -1062,6 +1062,26 @@ function App() {
         if (technicalInfo) {
           // Add personnel section if exists
           if (technicalInfo.personnel && technicalInfo.personnel.length > 0) {
+            // Check if the entire personnel table would fit on the current page
+            const estimatedRowHeight = 7; // Height per row in mm
+            const headerHeight = 20; // Estimated header height
+            const tablePaddingBottom = 15; // Space for footer
+            const estimatedTableHeight =
+              technicalInfo.personnel.length * estimatedRowHeight +
+              headerHeight;
+            const availableSpace =
+              portraitHeight - yPosition - tablePaddingBottom;
+
+            // If the entire table won't fit on the current page and we're close to the bottom,
+            // start it on a new page for better presentation
+            if (
+              estimatedTableHeight > availableSpace &&
+              yPosition > portraitHeight / 2
+            ) {
+              pdf.addPage("", "portrait");
+              yPosition = addHeader("Technical Information", mainTitle);
+            }
+
             pdf.setFontSize(14);
             pdf.setTextColor(50, 50, 50);
             renderTextWithFallback("Personnel", pageMargin, yPosition);
@@ -1118,10 +1138,103 @@ function App() {
             // Reset text color
             pdf.setTextColor(50, 50, 50);
 
-            // Add personnel rows
-            technicalInfo.personnel.forEach((person, index) => {
+            // Calculate how many rows fit on current page
+            const rowHeight = 7; // Height per row in mm
+            const safeMarginBottom = 15; // Space to leave at the bottom of the page for footer
+            const availableHeight =
+              portraitHeight - yPosition - safeMarginBottom;
+            const maxRowsPerPage = Math.floor(availableHeight / rowHeight);
+
+            // Split personnel rows across pages if needed
+            for (let i = 0; i < technicalInfo.personnel.length; i++) {
+              const person = technicalInfo.personnel[i];
+
+              // Only create a new page if we've reached the maximum rows for current page
+              // AND there are more rows to display
+              if (
+                i > 0 &&
+                i % maxRowsPerPage === 0 &&
+                i < technicalInfo.personnel.length
+              ) {
+                // Before adding a new page, check if the remaining rows would fit nicely on the next page
+                // Only paginate if there are enough remaining rows to justify a new page
+                const remainingRows = technicalInfo.personnel.length - i;
+
+                // If only a few rows remain (less than 25% of max rows), try to fit them on current page
+                // unless we're very close to the bottom of the page
+                if (
+                  remainingRows < Math.max(3, maxRowsPerPage * 0.25) &&
+                  yPosition < portraitHeight - 30
+                ) {
+                  // Try to squeeze in the remaining rows on current page
+                  continue;
+                }
+
+                // Add a new page
+                pdf.addPage("", "portrait");
+                yPosition = addHeader(
+                  "Technical Information - Continued",
+                  mainTitle
+                );
+
+                // Re-add table headers on the new page
+                pdf.setFontSize(14);
+                pdf.setTextColor(50, 50, 50);
+                renderTextWithFallback(
+                  "Personnel (Continued)",
+                  pageMargin,
+                  yPosition
+                );
+                yPosition += 8;
+
+                // Re-add column headers
+                pdf.setFontSize(10);
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
+
+                pdf.setTextColor(80, 80, 80);
+                renderTextWithFallback(
+                  "Name",
+                  pageMargin + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Role",
+                  pageMargin + nameColWidth + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Phone",
+                  pageMargin + nameColWidth + roleColWidth + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Email",
+                  pageMargin +
+                    nameColWidth +
+                    roleColWidth +
+                    phoneColWidth +
+                    colPadding,
+                  yPosition
+                );
+                yPosition += 2;
+
+                // Add horizontal line under headers
+                pdf.setDrawColor(180, 180, 180);
+                pdf.line(
+                  pageMargin,
+                  yPosition,
+                  pageMargin + contentWidth,
+                  yPosition
+                );
+                yPosition += 5;
+
+                // Reset text color
+                pdf.setTextColor(50, 50, 50);
+              }
+
               // Add zebra striping for better readability
-              if (index % 2 === 0) {
+              if (i % 2 === 0) {
                 pdf.setFillColor(248, 248, 248);
                 pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
@@ -1153,10 +1266,10 @@ function App() {
                 colPadding;
               renderTextWithFallback(emailText, emailX, yPosition);
 
-              yPosition += 7;
-            });
+              yPosition += rowHeight;
+            }
 
-            yPosition += 10;
+            yPosition += 20; // Consistent spacing between sections
           }
 
           // Helper function to add a section with title and content
@@ -1270,7 +1383,7 @@ function App() {
                 );
               });
 
-              yPosition += remainingHeight + 10;
+              yPosition += remainingHeight + 20; // Increase from 10 to 20 for consistent spacing
             } else {
               // Simple case: all text fits on current page
               const textHeight = splitText.length * lineHeight + padding;
@@ -1304,7 +1417,7 @@ function App() {
                 );
               });
 
-              yPosition += textHeight + 10;
+              yPosition += textHeight + 20; // Increase from 10 to 20 for consistent spacing
             }
 
             return true;
@@ -1325,8 +1438,201 @@ function App() {
             addSection("Mixing Desk", mixingDeskStr);
           }
 
+          // Add monitors table if there are any monitors
+          if (technicalInfo.monitors && technicalInfo.monitors.length > 0) {
+            // Check if the entire monitors table would fit on the current page
+            const estimatedRowHeight = 7; // Height per row in mm
+            const headerHeight = 20; // Estimated header height
+            const tablePaddingBottom = 15; // Space for footer
+            const estimatedTableHeight =
+              technicalInfo.monitors.length * estimatedRowHeight + headerHeight;
+            const availableSpace =
+              portraitHeight - yPosition - tablePaddingBottom;
+
+            // If the entire table won't fit on the current page and we're close to the bottom,
+            // start it on a new page for better presentation
+            if (
+              estimatedTableHeight > availableSpace &&
+              yPosition > portraitHeight / 2
+            ) {
+              pdf.addPage("", "portrait");
+              yPosition = addHeader(
+                "Technical Information - Continued",
+                mainTitle
+              );
+            } else if (yPosition > portraitHeight - 70) {
+              // Check if there's at least minimal space for the table header
+              pdf.addPage("", "portrait");
+              yPosition = addHeader(
+                "Technical Information - Continued",
+                mainTitle
+              );
+            }
+
+            pdf.setFontSize(14);
+            pdf.setTextColor(50, 50, 50);
+            renderTextWithFallback("Monitoring", pageMargin, yPosition);
+            yPosition += 8;
+
+            // Set up table headers
+            pdf.setFontSize(10);
+
+            // Calculate column widths with proper spacing for monitors
+            const colPadding = 5; // Add padding inside columns
+            const typeColWidth = 60;
+            const brandColWidth = 70;
+
+            // Add header background
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
+
+            // Draw table headers with padding
+            pdf.setTextColor(80, 80, 80);
+            renderTextWithFallback("Type", pageMargin + colPadding, yPosition);
+            renderTextWithFallback(
+              "Brand",
+              pageMargin + typeColWidth + colPadding,
+              yPosition
+            );
+            renderTextWithFallback(
+              "Quantity",
+              pageMargin + typeColWidth + brandColWidth + colPadding,
+              yPosition
+            );
+            yPosition += 2;
+
+            // Draw horizontal line under headers
+            pdf.setDrawColor(180, 180, 180);
+            pdf.line(
+              pageMargin,
+              yPosition,
+              pageMargin + contentWidth,
+              yPosition
+            );
+            yPosition += 5;
+
+            // Reset text color
+            pdf.setTextColor(50, 50, 50);
+
+            // Calculate how many rows fit on current page
+            const rowHeight = 7; // Height per row in mm
+            const safeMarginBottom = 15; // Space to leave at the bottom of the page for footer
+            const availableHeight =
+              portraitHeight - yPosition - safeMarginBottom;
+            const maxRowsPerPage = Math.floor(availableHeight / rowHeight);
+
+            // Split monitor rows across pages if needed
+            for (let i = 0; i < technicalInfo.monitors.length; i++) {
+              const monitor = technicalInfo.monitors[i];
+
+              // Only create a new page if we've reached the maximum rows for current page
+              // AND there are more rows to display
+              if (
+                i > 0 &&
+                i % maxRowsPerPage === 0 &&
+                i < technicalInfo.monitors.length
+              ) {
+                // Before adding a new page, check if the remaining rows would fit nicely on the next page
+                // Only paginate if there are enough remaining rows to justify a new page
+                const remainingRows = technicalInfo.monitors.length - i;
+
+                // If only a few rows remain (less than 25% of max rows), try to fit them on current page
+                // unless we're very close to the bottom of the page
+                if (
+                  remainingRows < Math.max(3, maxRowsPerPage * 0.25) &&
+                  yPosition < portraitHeight - 30
+                ) {
+                  // Try to squeeze in the remaining rows on current page
+                  continue;
+                }
+
+                // Add a new page
+                pdf.addPage("", "portrait");
+                yPosition = addHeader(
+                  "Technical Information - Continued",
+                  mainTitle
+                );
+
+                // Re-add table headers on the new page
+                pdf.setFontSize(14);
+                pdf.setTextColor(50, 50, 50);
+                renderTextWithFallback(
+                  "Monitoring (Continued)",
+                  pageMargin,
+                  yPosition
+                );
+                yPosition += 8;
+
+                // Re-add column headers
+                pdf.setFontSize(10);
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
+
+                pdf.setTextColor(80, 80, 80);
+                renderTextWithFallback(
+                  "Type",
+                  pageMargin + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Brand",
+                  pageMargin + typeColWidth + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Quantity",
+                  pageMargin + typeColWidth + brandColWidth + colPadding,
+                  yPosition
+                );
+                yPosition += 2;
+
+                // Add horizontal line under headers
+                pdf.setDrawColor(180, 180, 180);
+                pdf.line(
+                  pageMargin,
+                  yPosition,
+                  pageMargin + contentWidth,
+                  yPosition
+                );
+                yPosition += 5;
+
+                // Reset text color
+                pdf.setTextColor(50, 50, 50);
+              }
+
+              // Add zebra striping for better readability
+              if (i % 2 === 0) {
+                pdf.setFillColor(248, 248, 248);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
+              }
+
+              renderTextWithFallback(
+                monitor.type || "-",
+                pageMargin + colPadding,
+                yPosition
+              );
+
+              renderTextWithFallback(
+                monitor.brand || "-",
+                pageMargin + typeColWidth + colPadding,
+                yPosition
+              );
+
+              renderTextWithFallback(
+                monitor.quantity.toString() || "-",
+                pageMargin + typeColWidth + brandColWidth + colPadding,
+                yPosition
+              );
+
+              yPosition += rowHeight;
+            }
+
+            // Add consistent spacing after monitors table
+            yPosition += 20; // Consistent spacing between sections
+          }
+
           if (technicalInfo.monitoring)
-            addSection("Monitoring", technicalInfo.monitoring);
+            addSection("Additional Monitoring Notes", technicalInfo.monitoring);
 
           if (technicalInfo.backline)
             addSection("Backline", technicalInfo.backline);
@@ -1340,29 +1646,31 @@ function App() {
           inputOutput &&
           (inputOutput.inputs.length > 0 || inputOutput.outputs.length > 0)
         ) {
-          // Add a new page in portrait orientation for I/O tables if needed
-          if (yPosition > portraitHeight - 100) {
-            pdf.addPage("", "portrait");
-            yPosition = addHeader("Input/Output Lists", mainTitle);
-          } else {
-            // Draw a divider
-            pdf.setDrawColor(200, 200, 200);
-            pdf.line(
-              pageMargin,
-              yPosition,
-              pageMargin + contentWidth,
-              yPosition
-            );
-
-            yPosition += 15;
-            pdf.setFontSize(14);
-            pdf.setTextColor(50, 50, 50);
-            renderTextWithFallback("Input/Output Lists", pageMargin, yPosition);
-            yPosition += 10;
-          }
+          // Always add a new page for Input/Output Lists for better organization
+          pdf.addPage("", "portrait");
+          yPosition = addHeader("Input/Output Lists", mainTitle);
 
           // Add Input table if there are inputs
           if (inputOutput.inputs.length > 0) {
+            // Check if the entire input table would fit on the current page
+            const estimatedRowHeight = 7; // Height per row in mm
+            const headerHeight = 20; // Estimated header height
+            const tablePaddingBottom = 15; // Space for footer
+            const estimatedTableHeight =
+              inputOutput.inputs.length * estimatedRowHeight + headerHeight;
+            const availableSpace =
+              portraitHeight - yPosition - tablePaddingBottom;
+
+            // If the entire table won't fit on the current page and we're close to the bottom,
+            // start it on a new page for better presentation
+            if (
+              estimatedTableHeight > availableSpace &&
+              yPosition > portraitHeight / 2
+            ) {
+              pdf.addPage("", "portrait");
+              yPosition = addHeader("Input/Output Lists", mainTitle);
+            }
+
             pdf.setFontSize(12);
             pdf.setTextColor(50, 50, 50);
             renderTextWithFallback("Input List", pageMargin, yPosition);
@@ -1422,10 +1730,105 @@ function App() {
             // Reset text color
             pdf.setTextColor(50, 50, 50);
 
-            // Add each input row
-            inputOutput.inputs.forEach((input, index) => {
+            // Calculate how many rows fit on current page
+            const rowHeight = 7; // Height per row in mm
+            const safeMarginBottom = 15; // Space to leave at the bottom of the page for footer
+            const availableHeight =
+              portraitHeight - yPosition - safeMarginBottom;
+            const maxRowsPerPage = Math.floor(availableHeight / rowHeight);
+
+            // Only paginate if absolutely necessary
+            // Split inputs across pages if needed
+            for (let i = 0; i < inputOutput.inputs.length; i++) {
+              const input = inputOutput.inputs[i];
+
+              // Only create a new page if we've reached the maximum rows for current page
+              // AND there are more rows to display
+              if (
+                i > 0 &&
+                i % maxRowsPerPage === 0 &&
+                i < inputOutput.inputs.length
+              ) {
+                // Before adding a new page, check if the remaining rows would fit nicely on the next page
+                // Only paginate if there are enough remaining rows to justify a new page
+                const remainingRows = inputOutput.inputs.length - i;
+
+                // If only a few rows remain (less than 25% of max rows), try to fit them on current page
+                // unless we're very close to the bottom of the page
+                if (
+                  remainingRows < Math.max(3, maxRowsPerPage * 0.25) &&
+                  yPosition < portraitHeight - 30
+                ) {
+                  // Try to squeeze in the remaining rows on current page
+                  // Adjust spacing slightly if needed
+                  continue;
+                }
+
+                // Add a new page
+                pdf.addPage("", "portrait");
+                yPosition = addHeader(
+                  "Input/Output Lists - Continued",
+                  mainTitle
+                );
+
+                // Re-add table headers on the new page
+                pdf.setFontSize(12);
+                pdf.setTextColor(50, 50, 50);
+                renderTextWithFallback(
+                  "Input List (Continued)",
+                  pageMargin,
+                  yPosition
+                );
+                yPosition += 8;
+
+                // Re-add column headers
+                pdf.setFontSize(10);
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
+
+                pdf.setTextColor(80, 80, 80);
+                renderTextWithFallback(
+                  "Input #",
+                  pageMargin + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Channel Name",
+                  pageMargin + numColWidth + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Mic/DI Type",
+                  pageMargin + numColWidth + nameColWidth + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Stand Type",
+                  pageMargin +
+                    numColWidth +
+                    nameColWidth +
+                    channelColWidth +
+                    colPadding,
+                  yPosition
+                );
+                yPosition += 2;
+
+                // Add horizontal line under headers
+                pdf.setDrawColor(180, 180, 180);
+                pdf.line(
+                  pageMargin,
+                  yPosition,
+                  pageMargin + contentWidth,
+                  yPosition
+                );
+                yPosition += 5;
+
+                // Reset text color
+                pdf.setTextColor(50, 50, 50);
+              }
+
               // Add zebra striping for better readability
-              if (index % 2 === 0) {
+              if (i % 2 === 0) {
                 pdf.setFillColor(248, 248, 248);
                 pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
@@ -1465,6 +1868,7 @@ function App() {
                 pageMargin + numColWidth + nameColWidth + colPadding,
                 yPosition
               );
+
               renderTextWithFallback(
                 input.standType || "-",
                 pageMargin +
@@ -1474,16 +1878,37 @@ function App() {
                   colPadding,
                 yPosition
               );
-              yPosition += 7;
-            });
 
-            yPosition += 10;
+              yPosition += rowHeight;
+            }
+
+            yPosition += 20; // Consistent spacing between sections
           }
 
           // Add Output table if there are outputs and enough space
           if (inputOutput.outputs.length > 0) {
-            // Check if we need a new page (if less than 60mm remaining)
-            if (yPosition > portraitHeight - 60) {
+            // Check if the entire output table would fit on the current page
+            const estimatedRowHeight = 7; // Height per row in mm
+            const headerHeight = 20; // Estimated header height
+            const tablePaddingBottom = 15; // Space for footer
+            const estimatedTableHeight =
+              inputOutput.outputs.length * estimatedRowHeight + headerHeight;
+            const availableSpace =
+              portraitHeight - yPosition - tablePaddingBottom;
+
+            // If the entire table won't fit on the current page and we're close to the bottom,
+            // start it on a new page for better presentation
+            if (
+              estimatedTableHeight > availableSpace &&
+              yPosition > portraitHeight / 2
+            ) {
+              pdf.addPage("", "portrait");
+              yPosition = addHeader(
+                "Input/Output Lists - Continued",
+                mainTitle
+              );
+            } else if (yPosition > portraitHeight - 60) {
+              // Check if there's at least minimal space for the table header
               pdf.addPage("", "portrait");
               yPosition = addHeader(
                 "Input/Output Lists - Continued",
@@ -1540,10 +1965,94 @@ function App() {
             // Reset text color
             pdf.setTextColor(50, 50, 50);
 
-            // Add each output row
-            inputOutput.outputs.forEach((output, index) => {
+            // Calculate how many rows fit on current page
+            const rowHeight = 7; // Height per row in mm
+            const safeMarginBottom = 15; // Space to leave at the bottom of the page for footer
+            const availableHeight =
+              portraitHeight - yPosition - safeMarginBottom;
+            const maxRowsPerPage = Math.floor(availableHeight / rowHeight);
+
+            // Split outputs across pages if needed
+            for (let i = 0; i < inputOutput.outputs.length; i++) {
+              const output = inputOutput.outputs[i];
+
+              // Only create a new page if we've reached the maximum rows for current page
+              // AND there are more rows to display
+              if (
+                i > 0 &&
+                i % maxRowsPerPage === 0 &&
+                i < inputOutput.outputs.length
+              ) {
+                // Before adding a new page, check if the remaining rows would fit nicely on the next page
+                // Only paginate if there are enough remaining rows to justify a new page
+                const remainingRows = inputOutput.outputs.length - i;
+
+                // If only a few rows remain (less than 25% of max rows), try to fit them on current page
+                // unless we're very close to the bottom of the page
+                if (
+                  remainingRows < Math.max(3, maxRowsPerPage * 0.25) &&
+                  yPosition < portraitHeight - 30
+                ) {
+                  // Try to squeeze in the remaining rows on current page
+                  continue;
+                }
+
+                // Add a new page
+                pdf.addPage("", "portrait");
+                yPosition = addHeader(
+                  "Input/Output Lists - Continued",
+                  mainTitle
+                );
+
+                // Re-add table headers on the new page
+                pdf.setFontSize(12);
+                pdf.setTextColor(50, 50, 50);
+                renderTextWithFallback(
+                  "Output List (Continued)",
+                  pageMargin,
+                  yPosition
+                );
+                yPosition += 8;
+
+                // Re-add column headers
+                pdf.setFontSize(10);
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
+
+                pdf.setTextColor(80, 80, 80);
+                renderTextWithFallback(
+                  "Output #",
+                  pageMargin + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Channel Name",
+                  pageMargin + numColWidth + colPadding,
+                  yPosition
+                );
+                renderTextWithFallback(
+                  "Monitor Type",
+                  pageMargin + numColWidth + nameColWidth + colPadding,
+                  yPosition
+                );
+                yPosition += 2;
+
+                // Add horizontal line under headers
+                pdf.setDrawColor(180, 180, 180);
+                pdf.line(
+                  pageMargin,
+                  yPosition,
+                  pageMargin + contentWidth,
+                  yPosition
+                );
+                yPosition += 5;
+
+                // Reset text color
+                pdf.setTextColor(50, 50, 50);
+              }
+
               // Add zebra striping for better readability
-              if (index % 2 === 0) {
+              if (i % 2 === 0) {
                 pdf.setFillColor(248, 248, 248);
                 pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
@@ -1583,8 +2092,9 @@ function App() {
                 pageMargin + numColWidth + nameColWidth + colPadding,
                 yPosition
               );
-              yPosition += 7;
-            });
+
+              yPosition += rowHeight;
+            }
           }
         }
 
