@@ -996,6 +996,7 @@ const StageItemComponent: React.FC<{
             transform: item.isFlipped ? "scaleX(-1)" : "none", // Flip the image horizontally if needed
             display: "block",
             margin: "auto",
+            filter: "drop-shadow(0 2px 1px rgba(255, 255, 255, 0.7))",
           }}
         />
       )}
