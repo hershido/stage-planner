@@ -2,20 +2,79 @@ import React, { useState, useEffect } from "react";
 import { TechnicalInfo, Person } from "../types/stage";
 import { v4 as uuidv4 } from "uuid";
 
-// Predefined options for mixing desk dropdown
+// Expanded list of predefined options for mixing desk dropdown
 const MIXING_DESK_OPTIONS = [
+  // Digital Consoles - High End
   "Digico Quantum Series 338",
+  "Digico Quantum Series 225",
   "Digico SD Series 10",
   "Digico SD Series 12",
   "Digico SD Series 9",
-  "Midas Pro Series",
-  "Avid S6L",
-  "Allen & Heath dLive",
+  "Digico SD Series 8",
+  "Digico SD Series 7",
+  "Digico SD Series 5",
+  "Avid S6L-32D",
+  "Avid S6L-24D",
+  "Avid S6L-16C",
+  "Avid VENUE | S6L",
+  "Avid Profile",
+  "Avid VENUE",
+  "SSL Live L500",
+  "SSL Live L550",
+  "SSL Live L350",
+  "Midas Pro Series XL",
+  "Midas Pro Series X",
+  "Midas Pro6",
+  "Midas Pro2",
+  "Allen & Heath dLive S7000",
+  "Allen & Heath dLive S5000",
+  "Allen & Heath dLive S3000",
+  "Allen & Heath iLive T112",
+
+  // Digital Consoles - Mid Range
+  "Yamaha RIVAGE PM10",
+  "Yamaha RIVAGE PM7",
   "Yamaha CL5",
+  "Yamaha CL3",
+  "Yamaha CL1",
   "Yamaha QL5",
+  "Yamaha QL1",
+  "Yamaha M7CL",
+  "Yamaha LS9",
   "Soundcraft Vi7000",
   "Soundcraft Vi6000",
+  "Soundcraft Vi3000",
+  "Soundcraft Vi1000",
+  "Soundcraft Si Series",
+
+  // Digital Consoles - Budget/Smaller Venues
   "Behringer X32",
+  "Behringer X32 Compact",
+  "Behringer X32 Producer",
+  "Behringer X32 Rack",
+  "Behringer Wing",
+  "Allen & Heath SQ-5",
+  "Allen & Heath SQ-6",
+  "Allen & Heath SQ-7",
+  "Allen & Heath Avantis",
+  "Midas M32",
+  "PreSonus StudioLive Series III",
+  "QSC TouchMix Series",
+
+  // Analog Consoles
+  "Midas Heritage 3000",
+  "Midas XL4",
+  "Midas XL3",
+  "Midas XL2",
+  "Midas Venice",
+  "Soundcraft MH Series",
+  "Soundcraft GB Series",
+  "Allen & Heath GL Series",
+  "Yamaha PM Series (Analog)",
+  "Mackie 8-Bus Series",
+  "SSL 4000 Series",
+  "API Legacy",
+  "Neve VR Series",
 ];
 
 interface TechnicalInfoFormProps {
@@ -42,6 +101,7 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
   const [monitoring, setMonitoring] = useState("");
   const [backline, setBackline] = useState("");
   const [soundCheck, setSoundCheck] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // For personnel form
   const [personName, setPersonName] = useState("");
@@ -180,6 +240,11 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
   const removePerson = (id: string) => {
     setPersonnel(personnel.filter((person) => person.id !== id));
   };
+
+  // Filter mixing desks based on search query
+  const filteredMixingDesks = MIXING_DESK_OPTIONS.filter((desk) =>
+    desk.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (!isOpen) return null;
 
@@ -510,6 +575,25 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
           >
             Supported Mixing Desks: (Select multiple)
           </label>
+
+          {/* Search input for mixing desks */}
+          <div style={{ marginBottom: "10px" }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search mixing desks..."
+              style={{
+                width: "100%",
+                padding: "8px",
+                backgroundColor: "rgba(0, 0, 0, 0.3)",
+                color: "white",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                borderRadius: "4px",
+              }}
+            />
+          </div>
+
           <div
             style={{
               backgroundColor: "rgba(0, 0, 0, 0.3)",
@@ -520,35 +604,43 @@ const TechnicalInfoForm: React.FC<TechnicalInfoFormProps> = ({
               overflowY: "auto",
             }}
           >
-            {MIXING_DESK_OPTIONS.map((desk) => (
-              <div
-                key={desk}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "8px",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  id={`desk-${desk}`}
-                  checked={mixingDesk.includes(desk)}
-                  onChange={() => handleMixingDeskChange(desk)}
+            {filteredMixingDesks.length > 0 ? (
+              filteredMixingDesks.map((desk) => (
+                <div
+                  key={desk}
                   style={{
-                    marginRight: "8px",
-                    cursor: "pointer",
-                  }}
-                />
-                <label
-                  htmlFor={`desk-${desk}`}
-                  style={{
-                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "8px",
                   }}
                 >
-                  {desk}
-                </label>
+                  <input
+                    type="checkbox"
+                    id={`desk-${desk}`}
+                    checked={mixingDesk.includes(desk)}
+                    onChange={() => handleMixingDeskChange(desk)}
+                    style={{
+                      marginRight: "8px",
+                      cursor: "pointer",
+                    }}
+                  />
+                  <label
+                    htmlFor={`desk-${desk}`}
+                    style={{
+                      cursor: "pointer",
+                    }}
+                  >
+                    {desk}
+                  </label>
+                </div>
+              ))
+            ) : (
+              <div
+                style={{ padding: "8px", color: "rgba(255, 255, 255, 0.6)" }}
+              >
+                No mixing desks match your search. Add a custom mixer below.
               </div>
-            ))}
+            )}
           </div>
 
           <div style={{ marginTop: "10px" }}>
