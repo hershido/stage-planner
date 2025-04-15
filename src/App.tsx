@@ -956,69 +956,127 @@ function App() {
           unit: "mm",
         });
 
+        // Define common styles and margins
+        const pageMargin = 15; // mm, increased from 10mm
+        const contentWidth = pdf.internal.pageSize.getWidth() - pageMargin * 2;
+
+        // Add a footer with page number to each page
+        const addFooter = (pageNum: number) => {
+          const totalPages = pdf.getNumberOfPages();
+          pdf.setPage(pageNum);
+          pdf.setFontSize(9);
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(
+            `Page ${pageNum} of ${totalPages}`,
+            pdf.internal.pageSize.getWidth() / 2,
+            pdf.internal.pageSize.getHeight() - 7,
+            { align: "center" }
+          );
+
+          // Add generated timestamp
+          const timestamp = new Date().toLocaleString();
+          pdf.text(
+            `Generated: ${timestamp}`,
+            pdf.internal.pageSize.getWidth() - pageMargin,
+            pdf.internal.pageSize.getHeight() - 7,
+            { align: "right" }
+          );
+
+          // Add project name at bottom left
+          if (currentConfigName) {
+            pdf.text(
+              currentConfigName,
+              pageMargin,
+              pdf.internal.pageSize.getHeight() - 7,
+              { align: "left" }
+            );
+          }
+        };
+
+        // Add a decorative header to each page
+        const addHeader = (title: string, subtitle?: string) => {
+          // Get current position and page
+          const pageWidth = pdf.internal.pageSize.getWidth();
+
+          // Add header background
+          pdf.setFillColor(240, 240, 240);
+          pdf.rect(0, 0, pageWidth, 25, "F");
+
+          // Add subtle line
+          pdf.setDrawColor(200, 200, 200);
+          pdf.line(pageMargin, 25, pageWidth - pageMargin, 25);
+
+          // Add title
+          pdf.setFontSize(16);
+          pdf.setTextColor(60, 60, 60);
+          pdf.text(title, pageWidth / 2, 15, { align: "center" });
+
+          // Add subtitle if provided
+          if (subtitle) {
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(subtitle, pageWidth / 2, 22, { align: "center" });
+          }
+
+          return 35; // Return the Y position after the header
+        };
+
         // Get portrait page dimensions
-        const portraitWidth = pdf.internal.pageSize.getWidth();
         const portraitHeight = pdf.internal.pageSize.getHeight();
 
-        let yPosition = 20; // Starting Y position
+        // Start with project title or default title
+        const mainTitle = technicalInfo?.projectTitle || "Stage Plan";
+        let yPosition = addHeader("Technical Information", mainTitle);
 
         // 1. FIRST ADD TECHNICAL INFO
         if (technicalInfo) {
-          // Add page title
-          pdf.setFontSize(18);
-          pdf.setTextColor(0, 0, 0);
-          pdf.text("Technical Information", portraitWidth / 2, yPosition, {
-            align: "center",
-          });
-          yPosition += 15;
-
-          // Add project title
-          if (technicalInfo.projectTitle) {
-            pdf.setFontSize(16);
-            pdf.text(technicalInfo.projectTitle, portraitWidth / 2, yPosition, {
-              align: "center",
-            });
-            yPosition += 15;
-          }
-
           // Add personnel section if exists
           if (technicalInfo.personnel && technicalInfo.personnel.length > 0) {
             pdf.setFontSize(14);
-            pdf.text("Personnel", 10, yPosition);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text("Personnel", pageMargin, yPosition);
             yPosition += 8;
 
             // Create personnel table
             pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
+            pdf.setTextColor(80, 80, 80);
 
-            // Draw table headers
-            pdf.text("Name", 10, yPosition);
-            pdf.text("Role", 60, yPosition);
-            pdf.text("Phone", 110, yPosition);
-            pdf.text("Email", 160, yPosition);
+            // Draw table headers with background
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
+
+            pdf.text("Name", pageMargin, yPosition);
+            pdf.text("Role", pageMargin + 50, yPosition);
+            pdf.text("Phone", pageMargin + 100, yPosition);
+            pdf.text("Email", pageMargin + 150, yPosition);
             yPosition += 2;
 
             // Draw horizontal line
-            pdf.setDrawColor(200, 200, 200);
-            pdf.line(10, yPosition, portraitWidth - 10, yPosition);
+            pdf.setDrawColor(180, 180, 180);
+            pdf.line(
+              pageMargin,
+              yPosition,
+              pageMargin + contentWidth,
+              yPosition
+            );
             yPosition += 5;
 
             // Reset text color
-            pdf.setTextColor(0, 0, 0);
+            pdf.setTextColor(50, 50, 50);
 
             // Add personnel rows
             technicalInfo.personnel.forEach((person, index) => {
-              pdf.text(person.name || "-", 10, yPosition);
-              pdf.text(person.role || "-", 60, yPosition);
-              pdf.text(person.phone || "-", 110, yPosition);
-              pdf.text(person.email || "-", 160, yPosition);
-              yPosition += 7;
-
-              // Add light line after each row except the last
-              if (index < technicalInfo.personnel.length - 1) {
-                pdf.setDrawColor(230, 230, 230);
-                pdf.line(10, yPosition - 3, portraitWidth - 10, yPosition - 3);
+              // Add zebra striping for better readability
+              if (index % 2 === 0) {
+                pdf.setFillColor(248, 248, 248);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
+
+              pdf.text(person.name || "-", pageMargin, yPosition);
+              pdf.text(person.role || "-", pageMargin + 50, yPosition);
+              pdf.text(person.phone || "-", pageMargin + 100, yPosition);
+              pdf.text(person.email || "-", pageMargin + 150, yPosition);
+              yPosition += 7;
             });
 
             yPosition += 10;
@@ -1028,22 +1086,51 @@ function App() {
           const addSection = (title: string, content: string) => {
             if (!content) return false;
 
-            // Check if new page is needed (less than 30mm remaining)
-            if (yPosition > pdf.internal.pageSize.getHeight() - 30) {
+            // Check if new page is needed (less than 40mm remaining)
+            if (yPosition > portraitHeight - 40) {
               pdf.addPage("", "portrait");
-              yPosition = 20;
+              yPosition = addHeader(
+                "Technical Information - Continued",
+                mainTitle
+              );
             }
 
             pdf.setFontSize(14);
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(title, 10, yPosition);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text(title, pageMargin, yPosition);
             yPosition += 8;
 
+            // Add a light background for the section content
+            pdf.setFillColor(250, 250, 250);
+
+            // Calculate the height needed for text
             pdf.setFontSize(10);
-            // Split text to fit page width and handle line breaks
-            const splitText = pdf.splitTextToSize(content, portraitWidth - 20);
-            pdf.text(splitText, 10, yPosition);
-            yPosition += splitText.length * 5 + 10;
+            const splitText = pdf.splitTextToSize(content, contentWidth);
+            const textHeight = splitText.length * 5 + 10;
+
+            // Draw background
+            pdf.rect(
+              pageMargin - 3,
+              yPosition - 5,
+              contentWidth + 6,
+              textHeight,
+              "F"
+            );
+
+            // Add border
+            pdf.setDrawColor(230, 230, 230);
+            pdf.rect(
+              pageMargin - 3,
+              yPosition - 5,
+              contentWidth + 6,
+              textHeight,
+              "S"
+            );
+
+            // Add text
+            pdf.setTextColor(60, 60, 60);
+            pdf.text(splitText, pageMargin, yPosition);
+            yPosition += textHeight + 10;
 
             return true;
           };
@@ -1081,105 +1168,144 @@ function App() {
           // Add a new page in portrait orientation for I/O tables if needed
           if (yPosition > portraitHeight - 100) {
             pdf.addPage("", "portrait");
-            yPosition = 20;
+            yPosition = addHeader("Input/Output Lists", mainTitle);
           } else {
-            yPosition += 20; // Add some spacing
-          }
+            // Draw a divider
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(
+              pageMargin,
+              yPosition,
+              pageMargin + contentWidth,
+              yPosition
+            );
 
-          // Add page title
-          pdf.setFontSize(16);
-          pdf.text("Stage Input/Output Lists", portraitWidth / 2, yPosition, {
-            align: "center",
-          });
-          yPosition += 15;
+            yPosition += 15;
+            pdf.setFontSize(14);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text("Input/Output Lists", pageMargin, yPosition);
+            yPosition += 10;
+          }
 
           // Add Input table if there are inputs
           if (inputOutput.inputs.length > 0) {
-            pdf.setFontSize(14);
-            pdf.text("Input List", 10, yPosition);
+            pdf.setFontSize(12);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text("Input List", pageMargin, yPosition);
             yPosition += 8;
 
             // Set up table headers
             pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
+
+            // Add header background
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
 
             // Draw table headers
-            pdf.text("Input #", 10, yPosition);
-            pdf.text("Channel Name", 30, yPosition);
-            pdf.text("Mic/DI Type", 110, yPosition);
-            pdf.text("Stand Type", 170, yPosition);
+            pdf.setTextColor(80, 80, 80);
+            pdf.text("Input #", pageMargin, yPosition);
+            pdf.text("Channel Name", pageMargin + 20, yPosition);
+            pdf.text("Mic/DI Type", pageMargin + contentWidth - 90, yPosition);
+            pdf.text("Stand Type", pageMargin + contentWidth - 30, yPosition);
             yPosition += 2;
 
             // Draw horizontal line under headers
-            pdf.setDrawColor(200, 200, 200);
-            pdf.line(10, yPosition, portraitWidth - 10, yPosition);
+            pdf.setDrawColor(180, 180, 180);
+            pdf.line(
+              pageMargin,
+              yPosition,
+              pageMargin + contentWidth,
+              yPosition
+            );
             yPosition += 5;
 
             // Reset text color
-            pdf.setTextColor(0, 0, 0);
+            pdf.setTextColor(50, 50, 50);
 
             // Add each input row
             inputOutput.inputs.forEach((input, index) => {
-              pdf.text(input.number.toString(), 10, yPosition);
-              pdf.text(input.name || "-", 30, yPosition);
-              pdf.text(input.channelType || "-", 110, yPosition);
-              pdf.text(input.standType || "-", 170, yPosition);
-              yPosition += 7;
-
-              // Add a light gray line after each row except the last
-              if (index < inputOutput.inputs.length - 1) {
-                pdf.setDrawColor(230, 230, 230);
-                pdf.line(10, yPosition - 3, portraitWidth - 10, yPosition - 3);
+              // Add zebra striping for better readability
+              if (index % 2 === 0) {
+                pdf.setFillColor(248, 248, 248);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
+
+              pdf.text(input.number.toString(), pageMargin, yPosition);
+              pdf.text(input.name || "-", pageMargin + 20, yPosition);
+              pdf.text(
+                input.channelType || "-",
+                pageMargin + contentWidth - 90,
+                yPosition
+              );
+              pdf.text(
+                input.standType || "-",
+                pageMargin + contentWidth - 30,
+                yPosition
+              );
+              yPosition += 7;
             });
 
-            yPosition += 5;
+            yPosition += 10;
           }
 
           // Add Output table if there are outputs and enough space
           if (inputOutput.outputs.length > 0) {
-            // Check if we need a new page (if less than 50mm remaining)
-            if (yPosition > portraitHeight - 50) {
+            // Check if we need a new page (if less than 60mm remaining)
+            if (yPosition > portraitHeight - 60) {
               pdf.addPage("", "portrait");
-              yPosition = 20;
-            } else {
-              yPosition += 10; // Add some spacing between tables
+              yPosition = addHeader(
+                "Input/Output Lists - Continued",
+                mainTitle
+              );
             }
 
-            pdf.setFontSize(14);
-            pdf.text("Output List", 10, yPosition);
+            pdf.setFontSize(12);
+            pdf.setTextColor(50, 50, 50);
+            pdf.text("Output List", pageMargin, yPosition);
             yPosition += 8;
 
             // Set up table headers
             pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
+
+            // Add header background
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(pageMargin, yPosition - 5, contentWidth, 8, "F");
 
             // Draw table headers
-            pdf.text("Output #", 10, yPosition);
-            pdf.text("Channel Name", 30, yPosition);
-            pdf.text("Monitor Type", 130, yPosition);
+            pdf.setTextColor(80, 80, 80);
+            pdf.text("Output #", pageMargin, yPosition);
+            pdf.text("Channel Name", pageMargin + 20, yPosition);
+            pdf.text("Monitor Type", pageMargin + contentWidth - 60, yPosition);
             yPosition += 2;
 
             // Draw horizontal line under headers
-            pdf.setDrawColor(200, 200, 200);
-            pdf.line(10, yPosition, portraitWidth - 10, yPosition);
+            pdf.setDrawColor(180, 180, 180);
+            pdf.line(
+              pageMargin,
+              yPosition,
+              pageMargin + contentWidth,
+              yPosition
+            );
             yPosition += 5;
 
             // Reset text color
-            pdf.setTextColor(0, 0, 0);
+            pdf.setTextColor(50, 50, 50);
 
             // Add each output row
             inputOutput.outputs.forEach((output, index) => {
-              pdf.text(output.number.toString(), 10, yPosition);
-              pdf.text(output.name || "-", 30, yPosition);
-              pdf.text(output.monitorType || "-", 130, yPosition);
-              yPosition += 7;
-
-              // Add a light gray line after each row except the last
-              if (index < inputOutput.outputs.length - 1) {
-                pdf.setDrawColor(230, 230, 230);
-                pdf.line(10, yPosition - 3, portraitWidth - 10, yPosition - 3);
+              // Add zebra striping for better readability
+              if (index % 2 === 0) {
+                pdf.setFillColor(248, 248, 248);
+                pdf.rect(pageMargin, yPosition - 5, contentWidth, 7, "F");
               }
+
+              pdf.text(output.number.toString(), pageMargin, yPosition);
+              pdf.text(output.name || "-", pageMargin + 20, yPosition);
+              pdf.text(
+                output.monitorType || "-",
+                pageMargin + contentWidth - 60,
+                yPosition
+              );
+              yPosition += 7;
             });
           }
         }
@@ -1192,13 +1318,16 @@ function App() {
         const landscapeWidth = pdf.internal.pageSize.getWidth();
         const landscapeHeight = pdf.internal.pageSize.getHeight();
 
+        // Add header to stage diagram page
+        yPosition = addHeader("Stage Diagram", mainTitle);
+
         // Calculate the image dimensions while preserving aspect ratio
         const canvasRatio = canvas.width / canvas.height;
 
-        // Set margins
-        const margin = 10; // mm
+        // Set margins - increase for better appearance
+        const margin = pageMargin; // Use same margin as other pages
         const maxWidth = landscapeWidth - margin * 2;
-        const maxHeight = landscapeHeight - margin * 2;
+        const maxHeight = landscapeHeight - margin - yPosition - 15; // Account for header and footer
 
         // Determine dimensions based on aspect ratio
         let imgWidth, imgHeight;
@@ -1216,8 +1345,20 @@ function App() {
         // Center the image on the page
         const xPos = margin + (maxWidth - imgWidth) / 2;
 
-        // Center vertically on the page with equal margins
-        const yPos = (landscapeHeight - imgHeight) / 2;
+        // Position vertically below the header
+        const yPos = yPosition + 5;
+
+        // Add a subtle border around the stage diagram
+        pdf.setDrawColor(200, 200, 200);
+        pdf.roundedRect(
+          xPos - 5,
+          yPos - 5,
+          imgWidth + 10,
+          imgHeight + 10,
+          3,
+          3,
+          "S"
+        );
 
         // Add the stage image to the PDF with minimal compression
         pdf.addImage({
@@ -1229,6 +1370,12 @@ function App() {
           height: imgHeight,
           compression: "NONE", // Better quality with no compression
         });
+
+        // Add footers to all pages
+        const totalPages = pdf.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          addFooter(i);
+        }
 
         // Generate the filename with configuration name and date
         const currentDate = new Date().toLocaleDateString().replace(/\//g, "-");
