@@ -40,6 +40,7 @@ import drummerMixer from "../assets/icons/drummerMixer.svg";
 import textLabel from "../assets/icons/textLabel.svg";
 import stickerLabel from "../assets/icons/stickerLabel.svg";
 import appLogo from "../assets/icons/appLogo.svg";
+import vocalMicOnStand from "../assets/icons/vocalMicOnStand.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -702,6 +703,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       name: "Laptop with Audio Interface",
       icon: laptopWithAudioInterfaceOnStand,
       defaultWidth: 90,
+      defaultHeight: 120,
+    },
+    {
+      type: "equipment",
+      subtype: "stageGear",
+      name: "Vocal Mic On Stand",
+      icon: vocalMicOnStand,
+      defaultWidth: 50,
       defaultHeight: 120,
     },
 
