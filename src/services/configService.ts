@@ -108,7 +108,7 @@ export interface SavedConfig {
 }
 
 // Clean and prepare items for Firestore storage
-export function sanitizeForFirestore(items: StageItem[]): StorableItem[] {
+function sanitizeForFirestore(items: StageItem[]): StorableItem[] {
   console.log("Original items:", JSON.stringify(items));
   return items.map((item) => {
     // Create the base item with required fields
@@ -275,32 +275,29 @@ function sanitizeTechnicalInfoForFirestore(
 }
 
 // Convert Firestore items back to StageItem format
-export function convertToStageItems(items: StorableItem[]): StageItem[] {
-  return items.map((item) => {
-    const convertedItem: StageItem = {
-      id: item.id,
-      name: item.name,
-      category: item.category as Category,
-      icon: item.icon,
-      position: {
-        x: item.posX,
-        y: item.posY,
-      },
-      width: item.width,
-      height: item.height,
-      isFlipped: item.isFlipped,
-    };
-
-    if (item.textContent) {
-      convertedItem.textContent = item.textContent;
-    }
-
-    if (item.textFormatting) {
-      convertedItem.textFormatting = item.textFormatting;
-    }
-
-    return convertedItem;
-  });
+function convertToStageItems(items: StorableItem[]): StageItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    category: item.category as Category, // Type cast to match the expected enum
+    icon: item.icon,
+    position: {
+      x: item.posX,
+      y: item.posY,
+    },
+    width: item.width,
+    height: item.height,
+    isFlipped: item.isFlipped,
+    textContent: item.textContent,
+    textFormatting: item.textFormatting
+      ? {
+          isBold: item.textFormatting.isBold,
+          isItalic: item.textFormatting.isItalic,
+          fontSize: item.textFormatting.fontSize,
+          textColor: item.textFormatting.textColor,
+        }
+      : undefined,
+  }));
 }
 
 // Convert Firestore input/output back to StageInputOutput format

@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDrag } from "react-dnd";
-import {
-  DraggableItem,
-  StageItem,
-  StageInputOutput,
-  TechnicalInfo,
-} from "../types/stage";
+import { DraggableItem } from "../types/stage";
 import guitarIcon from "../assets/icons/guitar.svg";
 import guitarPlayerMale from "../assets/icons/guitarPlayerMale.svg";
 import guitarPlayerFemale from "../assets/icons/guitarPlayerFemale.svg";
@@ -45,8 +40,6 @@ import drummerMixer from "../assets/icons/drummerMixer.svg";
 import textLabel from "../assets/icons/textLabel.svg";
 import stickerLabel from "../assets/icons/stickerLabel.svg";
 import appLogo from "../assets/icons/appLogo.svg";
-import PresetSection from "./PresetSection";
-import { StagePreset } from "../services/presetService";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -555,19 +548,9 @@ const MusicianCategory: React.FC<{
 
 interface SidebarProps {
   onItemClick: (item: DraggableItem) => void;
-  currentItems?: StageItem[];
-  currentInputOutput?: StageInputOutput;
-  currentTechnicalInfo?: TechnicalInfo;
-  onPresetLoad?: (preset: StagePreset) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
-  onItemClick,
-  currentItems,
-  currentInputOutput,
-  currentTechnicalInfo,
-  onPresetLoad,
-}) => {
+const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const items: DraggableItem[] = [
@@ -989,12 +972,28 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div style={{ flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
-          <PresetSection
-            onPresetSelect={onPresetLoad || (() => {})}
-            currentItems={currentItems}
-            currentInputOutput={currentInputOutput}
-            currentTechnicalInfo={currentTechnicalInfo}
-          />
+          {instrumentItems.length > 0 && (
+            <Category
+              title="Instruments"
+              items={instrumentItems}
+              onItemClick={onItemClick}
+              isSearching={searchTerm.trim() !== ""}
+              icon={acousticGuitarOnStand}
+            />
+          )}
+
+          {equipmentItems.length > 0 && (
+            <EquipmentCategory
+              speakerItems={speakerItems}
+              guitarAmpItems={guitarAmpItems}
+              bassAmpItems={bassAmpItems}
+              stageGearItems={stageGearItems}
+              monitorItems={monitorItems}
+              onItemClick={onItemClick}
+              isSearching={searchTerm.trim() !== ""}
+              icon={drummerMixer}
+            />
+          )}
 
           {labelItems.length > 0 && (
             <Category
@@ -1041,29 +1040,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               onItemClick={onItemClick}
               isSearching={searchTerm.trim() !== ""}
               icon={guitarPlayerMale}
-            />
-          )}
-
-          {equipmentItems.length > 0 && (
-            <EquipmentCategory
-              speakerItems={speakerItems}
-              guitarAmpItems={guitarAmpItems}
-              bassAmpItems={bassAmpItems}
-              stageGearItems={stageGearItems}
-              monitorItems={monitorItems}
-              onItemClick={onItemClick}
-              isSearching={searchTerm.trim() !== ""}
-              icon={drummerMixer}
-            />
-          )}
-
-          {instrumentItems.length > 0 && (
-            <Category
-              title="Instruments"
-              items={instrumentItems}
-              onItemClick={onItemClick}
-              isSearching={searchTerm.trim() !== ""}
-              icon={acousticGuitarOnStand}
             />
           )}
 
