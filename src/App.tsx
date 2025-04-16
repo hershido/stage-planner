@@ -24,6 +24,7 @@ import {
 import "./App.css";
 import { v4 as uuidv4 } from "uuid";
 import { SaveChangesDialog } from "./components/SaveChangesDialog";
+import { StagePreset } from "./services/presetService";
 
 // File System Access API types
 interface FileSystemFileHandle {
@@ -2544,6 +2545,97 @@ function App() {
     [technicalInfo]
   );
 
+  // Handle loading a preset
+  const handleLoadPreset = (preset: StagePreset) => {
+    if (!preset || !preset.items) {
+      console.error("Invalid preset data");
+      return;
+    }
+
+    // Ask user to confirm if they have unsaved changes
+    if (hasUnsavedChanges) {
+      if (
+        !window.confirm(
+          "You have unsaved changes. Loading a preset will replace your current stage. Continue?"
+        )
+      ) {
+        return;
+      }
+    }
+
+    // Confirm with user before loading
+    if (!window.confirm(`Load the "${preset.name}" preset?`)) {
+      return;
+    }
+
+    try {
+      isLoadingConfigRef.current = true;
+
+      // Reset history
+      historyRef.current = [{ items: [], latestItemId: null }];
+      setCurrentHistoryIndex(0);
+      setHistoryLength(1);
+
+      // Load items from preset
+      setItems(preset.items);
+
+      // Load input/output if available
+      if (preset.inputOutput) {
+        setInputOutput(preset.inputOutput);
+      }
+
+      // Load technical info if available
+      if (preset.technicalInfo) {
+        setTechnicalInfo(preset.technicalInfo);
+      }
+
+      // Update the latest item ID to null as this is a fresh load
+      setLatestItemId(null);
+
+      // Push the new state to history
+      const newHistoryEntry = {
+        items: preset.items,
+        latestItemId: null,
+      };
+
+      historyRef.current.push(newHistoryEntry);
+      setCurrentHistoryIndex(1);
+      setHistoryLength(2);
+
+      // Mark as having unsaved changes
+      setHasUnsavedChanges(true);
+
+      // Reset current config name and ID since this is from a preset, not a saved config
+      setCurrentConfigName("Untitled Stage");
+      setCurrentConfigId(null);
+
+      console.log(`Loaded preset: ${preset.name}`);
+
+      // Set a timeout to reset the loading flag
+      setTimeout(() => {
+        isLoadingConfigRef.current = false;
+      }, 500);
+    } catch (error) {
+      console.error("Error loading preset:", error);
+      isLoadingConfigRef.current = false;
+    }
+  };
+
+  // Create an adapter function to handle presets in the header
+  const handleLoadFromHeader = useCallback(
+    (
+      items: StageItem[],
+      configName: string,
+      configId?: string,
+      inputOutput?: StageInputOutput,
+      technicalInfo?: TechnicalInfo
+    ) => {
+      // This adapter function calls the normal handleImport function
+      handleImport(items, configName, configId, inputOutput, technicalInfo);
+    },
+    [handleImport]
+  );
+
   // Show loading state
   if (loading) {
     return (
@@ -2587,14 +2679,20 @@ function App() {
     <DndProvider backend={HTML5Backend}>
       <div className="main-container">
         <div className="sidebar-container">
-          <Sidebar onItemClick={handleSidebarItemClick} />
+          <Sidebar
+            onItemClick={handleSidebarItemClick}
+            currentItems={items}
+            currentInputOutput={inputOutput}
+            currentTechnicalInfo={technicalInfo}
+            onPresetLoad={handleLoadPreset}
+          />
         </div>
 
         <Header
           items={items}
           inputOutput={inputOutput}
           technicalInfo={technicalInfo}
-          onLoad={handleImport}
+          onLoad={handleLoadFromHeader}
           currentConfigName={currentConfigName}
           currentConfigId={currentConfigId}
           hasUnsavedChanges={hasUnsavedChanges}

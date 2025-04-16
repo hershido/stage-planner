@@ -1631,6 +1631,10 @@ const Stage: React.FC<StageProps> = ({
     display: isLassoActive ? "block" : "none",
   };
 
+  // Refs to track if we've already provided functions to parent
+  const hasProvidedExport = useRef(false);
+  const hasProvidedImport = useRef(false);
+
   // Add a function to handle exporting the stage configuration
   const handleExportConfig = useCallback(() => {
     try {
@@ -1680,14 +1684,10 @@ const Stage: React.FC<StageProps> = ({
 
   // Make the export function available to parent components via callback ref
   useEffect(() => {
-    if (onExport) {
+    if (onExport && !hasProvidedExport.current) {
       console.log("Providing export function to parent");
-      // Only run this once
-      const runOnce = { current: true };
-      if (runOnce.current) {
-        runOnce.current = false;
-        onExport(handleExportConfig);
-      }
+      hasProvidedExport.current = true;
+      onExport(handleExportConfig);
     }
   }, [onExport, handleExportConfig]);
 
@@ -1856,15 +1856,14 @@ const Stage: React.FC<StageProps> = ({
     }
   }, []); // Empty dependency array
 
-  // Make the import function available to parent components via callback ref
+  // Make the import function available to parent components
   useEffect(() => {
-    if (onImportFunc) {
-      console.log("Providing import function to parent - once only");
+    if (onImportFunc && !hasProvidedImport.current) {
+      console.log("Providing import function to parent");
+      hasProvidedImport.current = true;
       onImportFunc(handleImportConfig);
     }
-    // Only run this once - omitting onImportFunc and handleImportConfig from deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onImportFunc, handleImportConfig]);
 
   // Handle text content updates
   const handleTextUpdate = useCallback(
