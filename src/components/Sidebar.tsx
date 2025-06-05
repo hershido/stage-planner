@@ -17,6 +17,7 @@ import dragQueen from "../assets/icons/dragQueen.svg";
 import trumpetPlayer from "../assets/icons/trumpetPlayer.svg";
 import saxophonePlayer from "../assets/icons/saxophonePlayer.svg";
 import trombonePlayer from "../assets/icons/trombonePlayer.svg";
+import femaleFlutePlayer from "../assets/icons/femaleFlutePlayer.svg";
 import bongosPlayer from "../assets/icons/bongosPlayer.svg";
 import congasPlayer from "../assets/icons/congasPlayer.svg";
 import hornSection from "../assets/icons/hornSection.svg";
@@ -41,6 +42,7 @@ import textLabel from "../assets/icons/textLabel.svg";
 import stickerLabel from "../assets/icons/stickerLabel.svg";
 import appLogo from "../assets/icons/appLogo.svg";
 import vocalMicOnStand from "../assets/icons/vocalMicOnStand.svg";
+import bongosOnStand from "../assets/icons/bongosOnStand.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -591,6 +593,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 60,
       defaultHeight: 150,
     },
+    {
+      type: "instruments",
+      name: "Bongos On Stand",
+      icon: bongosOnStand,
+      defaultWidth: 80,
+      defaultHeight: 120,
+    },
 
     // Equipment - Speakers
     {
@@ -827,6 +836,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     },
     {
       type: "musicians",
+      name: "Female Flute Player",
+      icon: femaleFlutePlayer,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
       name: "Horn Section",
       icon: hornSection,
       defaultWidth: 180,
@@ -1044,6 +1060,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                   item.name.includes("Trumpet") ||
                   item.name.includes("Saxophone") ||
                   item.name.includes("Trombone") ||
+                  item.name.includes("Flute") ||
                   item.name.includes("Horn")
               )}
               onItemClick={onItemClick}
