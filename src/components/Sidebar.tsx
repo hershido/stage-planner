@@ -18,6 +18,7 @@ import trumpetPlayer from "../assets/icons/trumpetPlayer.svg";
 import saxophonePlayer from "../assets/icons/saxophonePlayer.svg";
 import trombonePlayer from "../assets/icons/trombonePlayer.svg";
 import femaleFlutePlayer from "../assets/icons/femaleFlutePlayer.svg";
+import femaleAcousticGuitarPlayer from "../assets/icons/femaleAcousticGuitarPlayer.svg";
 import bongosPlayer from "../assets/icons/bongosPlayer.svg";
 import congasPlayer from "../assets/icons/congasPlayer.svg";
 import hornSection from "../assets/icons/hornSection.svg";
@@ -754,6 +755,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 120,
       defaultHeight: 170,
     },
+    {
+      type: "musicians",
+      name: "Female Acoustic Guitar Player",
+      icon: femaleAcousticGuitarPlayer,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
 
     // Musicians - Bassists
     {
@@ -1033,7 +1041,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           {musicianItems.length > 0 && (
             <MusicianCategory
               guitaristItems={musicianItems.filter((item) =>
-                item.name.includes("Guitarist")
+                item.name.includes("Guitarist") || item.name.includes("Guitar Player")
               )}
               bassistItems={musicianItems.filter((item) =>
                 item.name.includes("Bassist")
