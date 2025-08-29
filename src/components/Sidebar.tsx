@@ -44,6 +44,9 @@ import stickerLabel from "../assets/icons/stickerLabel.svg";
 import appLogo from "../assets/icons/appLogo.svg";
 import vocalMicOnStand from "../assets/icons/vocalMicOnStand.svg";
 import bongosOnStand from "../assets/icons/bongosOnStand.svg";
+import femaleSingerColor from "../assets/icons/femaleSingerColor.svg";
+import maleDrummerSmallKit from "../assets/icons/maleDrummerSmallKit.svg";
+import maleAcousticGuitarPlayer from "../assets/icons/maleAcousticGuitarPlayer.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -220,9 +223,8 @@ const Category: React.FC<CategoryProps> = ({
     <div style={{ marginBottom: level === "main" ? "16px" : "12px" }}>
       <div
         onClick={handleToggle}
-        className={`sidebar-category-header ${
-          level === "sub" ? "sidebar-subcategory-header" : ""
-        }`}
+        className={`sidebar-category-header ${level === "sub" ? "sidebar-subcategory-header" : ""
+          }`}
       >
         <div className="header-content">
           {icon && <img src={icon} alt="" className="category-icon" />}
@@ -239,17 +241,15 @@ const Category: React.FC<CategoryProps> = ({
           style={{ overflowX: "hidden" }}
         >
           <div
-            className={`fade-top ${
-              shouldShowFades && canScrollUp ? "visible" : ""
-            }`}
+            className={`fade-top ${shouldShowFades && canScrollUp ? "visible" : ""
+              }`}
           ></div>
           <div
             ref={scrollContainerRef}
-            className={`${
-              showScrollable
-                ? "scrollable-container"
-                : "non-scrollable-container"
-            }`}
+            className={`${showScrollable
+              ? "scrollable-container"
+              : "non-scrollable-container"
+              }`}
             style={{ overflowX: "hidden" }}
           >
             <div className="sidebar-grid-container" style={{ width: "100%" }}>
@@ -263,9 +263,8 @@ const Category: React.FC<CategoryProps> = ({
             </div>
           </div>
           <div
-            className={`fade-bottom ${
-              shouldShowFades && canScrollDown ? "visible" : ""
-            }`}
+            className={`fade-bottom ${shouldShowFades && canScrollDown ? "visible" : ""
+              }`}
           ></div>
         </div>
       )}
@@ -293,102 +292,102 @@ const EquipmentCategory: React.FC<{
   isSearching,
   icon,
 }) => {
-  // Initialize as expanded if searching and there are matching items
-  const [isExpanded, setIsExpanded] = useState(
-    isSearching &&
-      (speakerItems.length > 0 ||
-        guitarAmpItems.length > 0 ||
-        bassAmpItems.length > 0 ||
-        stageGearItems.length > 0 ||
-        monitorItems.length > 0)
-  );
-
-  // Update expansion state when search status changes
-  useEffect(() => {
-    if (
+    // Initialize as expanded if searching and there are matching items
+    const [isExpanded, setIsExpanded] = useState(
       isSearching &&
       (speakerItems.length > 0 ||
         guitarAmpItems.length > 0 ||
         bassAmpItems.length > 0 ||
         stageGearItems.length > 0 ||
         monitorItems.length > 0)
-    ) {
-      setIsExpanded(true);
-    }
-  }, [
-    isSearching,
-    speakerItems.length,
-    guitarAmpItems.length,
-    bassAmpItems.length,
-    stageGearItems.length,
-    monitorItems.length,
-  ]);
+    );
 
-  return (
-    <div style={{ marginBottom: "16px" }}>
-      <div
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="sidebar-category-header"
-      >
-        <div className="header-content">
-          {icon && <img src={icon} alt="" className="category-icon" />}
-          <h3>Equipment</h3>
-        </div>
+    // Update expansion state when search status changes
+    useEffect(() => {
+      if (
+        isSearching &&
+        (speakerItems.length > 0 ||
+          guitarAmpItems.length > 0 ||
+          bassAmpItems.length > 0 ||
+          stageGearItems.length > 0 ||
+          monitorItems.length > 0)
+      ) {
+        setIsExpanded(true);
+      }
+    }, [
+      isSearching,
+      speakerItems.length,
+      guitarAmpItems.length,
+      bassAmpItems.length,
+      stageGearItems.length,
+      monitorItems.length,
+    ]);
+
+    return (
+      <div style={{ marginBottom: "16px" }}>
         <div
-          className={`toggle-icon ${isExpanded ? "expanded" : "collapsed"}`}
-        ></div>
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="sidebar-category-header"
+        >
+          <div className="header-content">
+            {icon && <img src={icon} alt="" className="category-icon" />}
+            <h3>Equipment</h3>
+          </div>
+          <div
+            className={`toggle-icon ${isExpanded ? "expanded" : "collapsed"}`}
+          ></div>
+        </div>
+
+        {isExpanded && (
+          <>
+            {guitarAmpItems.length > 0 && (
+              <Category
+                title="Guitar Amps"
+                items={guitarAmpItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={guitarAmpMarshallStack}
+              />
+            )}
+
+            {bassAmpItems.length > 0 && (
+              <Category
+                title="Bass Amps"
+                items={bassAmpItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={bassAmpSvtStack}
+              />
+            )}
+
+            {monitorItems.length > 0 && (
+              <Category
+                title="Monitors"
+                items={monitorItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={iemMonitor}
+              />
+            )}
+
+            {stageGearItems.length > 0 && (
+              <Category
+                title="Stage Gear"
+                items={stageGearItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={electricDropTwoSockets}
+              />
+            )}
+          </>
+        )}
       </div>
-
-      {isExpanded && (
-        <>
-          {guitarAmpItems.length > 0 && (
-            <Category
-              title="Guitar Amps"
-              items={guitarAmpItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={guitarAmpMarshallStack}
-            />
-          )}
-
-          {bassAmpItems.length > 0 && (
-            <Category
-              title="Bass Amps"
-              items={bassAmpItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={bassAmpSvtStack}
-            />
-          )}
-
-          {monitorItems.length > 0 && (
-            <Category
-              title="Monitors"
-              items={monitorItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={iemMonitor}
-            />
-          )}
-
-          {stageGearItems.length > 0 && (
-            <Category
-              title="Stage Gear"
-              items={stageGearItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={electricDropTwoSockets}
-            />
-          )}
-        </>
-      )}
-    </div>
-  );
-};
+    );
+  };
 
 // Musicians category component with subcategories
 const MusicianCategory: React.FC<{
@@ -414,21 +413,8 @@ const MusicianCategory: React.FC<{
   isSearching,
   icon,
 }) => {
-  // Initialize as expanded if searching and there are matching items
-  const [isExpanded, setIsExpanded] = useState(
-    isSearching &&
-      (guitaristItems.length > 0 ||
-        bassistItems.length > 0 ||
-        keyboardItems.length > 0 ||
-        vocalistItems.length > 0 ||
-        drummerItems.length > 0 ||
-        percussionItems.length > 0 ||
-        windItems.length > 0)
-  );
-
-  // Update expansion state when search status changes
-  useEffect(() => {
-    if (
+    // Initialize as expanded if searching and there are matching items
+    const [isExpanded, setIsExpanded] = useState(
       isSearching &&
       (guitaristItems.length > 0 ||
         bassistItems.length > 0 ||
@@ -437,118 +423,131 @@ const MusicianCategory: React.FC<{
         drummerItems.length > 0 ||
         percussionItems.length > 0 ||
         windItems.length > 0)
-    ) {
-      setIsExpanded(true);
-    }
-  }, [
-    isSearching,
-    guitaristItems.length,
-    bassistItems.length,
-    keyboardItems.length,
-    vocalistItems.length,
-    drummerItems.length,
-    percussionItems.length,
-    windItems.length,
-  ]);
+    );
 
-  return (
-    <div style={{ marginBottom: "16px" }}>
-      <div
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="sidebar-category-header"
-      >
-        <div className="header-content">
-          {icon && <img src={icon} alt="" className="category-icon" />}
-          <h3>Musicians</h3>
-        </div>
+    // Update expansion state when search status changes
+    useEffect(() => {
+      if (
+        isSearching &&
+        (guitaristItems.length > 0 ||
+          bassistItems.length > 0 ||
+          keyboardItems.length > 0 ||
+          vocalistItems.length > 0 ||
+          drummerItems.length > 0 ||
+          percussionItems.length > 0 ||
+          windItems.length > 0)
+      ) {
+        setIsExpanded(true);
+      }
+    }, [
+      isSearching,
+      guitaristItems.length,
+      bassistItems.length,
+      keyboardItems.length,
+      vocalistItems.length,
+      drummerItems.length,
+      percussionItems.length,
+      windItems.length,
+    ]);
+
+    return (
+      <div style={{ marginBottom: "16px" }}>
         <div
-          className={`toggle-icon ${isExpanded ? "expanded" : "collapsed"}`}
-        ></div>
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="sidebar-category-header"
+        >
+          <div className="header-content">
+            {icon && <img src={icon} alt="" className="category-icon" />}
+            <h3>Musicians</h3>
+          </div>
+          <div
+            className={`toggle-icon ${isExpanded ? "expanded" : "collapsed"}`}
+          ></div>
+        </div>
+
+        {isExpanded && (
+          <>
+            {guitaristItems.length > 0 && (
+              <Category
+                title="Guitarists"
+                items={guitaristItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={guitarPlayerMale}
+              />
+            )}
+
+            {bassistItems.length > 0 && (
+              <Category
+                title="Bassists"
+                items={bassistItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={bassPlayerMale}
+              />
+            )}
+
+            {keyboardItems.length > 0 && (
+              <Category
+                title="Keyboard Players"
+                items={keyboardItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={keyboardPlayerMale}
+              />
+            )}
+
+            {vocalistItems.length > 0 && (
+              <Category
+                title="Vocalists"
+                items={vocalistItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={vocalistMale}
+              />
+            )}
+
+            {drummerItems.length > 0 && (
+              <Category
+                title="Drummers"
+                items={drummerItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={drumPlayerMale}
+              />
+            )}
+
+            {percussionItems.length > 0 && (
+              <Category
+                title="Percussion"
+                items={percussionItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={bongosPlayer}
+              />
+            )}
+
+            {windItems.length > 0 && (
+              <Category
+                title="Wind Instruments"
+                items={windItems}
+                onItemClick={onItemClick}
+                level="sub"
+                isSearching={isSearching}
+                icon={trumpetPlayer}
+              />
+            )}
+          </>
+        )}
       </div>
-
-      {isExpanded && (
-        <>
-          {guitaristItems.length > 0 && (
-            <Category
-              title="Guitarists"
-              items={guitaristItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={guitarPlayerMale}
-            />
-          )}
-
-          {bassistItems.length > 0 && (
-            <Category
-              title="Bassists"
-              items={bassistItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={bassPlayerMale}
-            />
-          )}
-
-          {keyboardItems.length > 0 && (
-            <Category
-              title="Keyboard Players"
-              items={keyboardItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={keyboardPlayerMale}
-            />
-          )}
-
-          {vocalistItems.length > 0 && (
-            <Category
-              title="Vocalists"
-              items={vocalistItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={vocalistMale}
-            />
-          )}
-
-          {drummerItems.length > 0 && (
-            <Category
-              title="Drummers"
-              items={drummerItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={drumPlayerMale}
-            />
-          )}
-
-          {percussionItems.length > 0 && (
-            <Category
-              title="Percussion"
-              items={percussionItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={bongosPlayer}
-            />
-          )}
-
-          {windItems.length > 0 && (
-            <Category
-              title="Wind Instruments"
-              items={windItems}
-              onItemClick={onItemClick}
-              level="sub"
-              isSearching={isSearching}
-              icon={trumpetPlayer}
-            />
-          )}
-        </>
-      )}
-    </div>
-  );
-};
+    );
+  };
 
 interface SidebarProps {
   onItemClick: (item: DraggableItem) => void;
@@ -762,6 +761,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 120,
       defaultHeight: 170,
     },
+    {
+      type: "musicians",
+      name: "Male Acoustic Guitar Player",
+      icon: maleAcousticGuitarPlayer,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
 
     // Musicians - Bassists
     {
@@ -819,6 +825,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 180,
       defaultHeight: 150,
     },
+    {
+      type: "musicians",
+      name: "Male Drummer with small kit",
+      icon: maleDrummerSmallKit,
+      defaultWidth: 180,
+      defaultHeight: 150,
+    },
+
 
     // Musicians - Wind Instruments
     {
@@ -902,14 +916,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 120,
       defaultHeight: 170,
     },
+    {
+      type: "musicians",
+      name: "Female Singer",
+      icon: femaleSingerColor,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
   ];
 
   const filteredItems =
     searchTerm.trim() === ""
       ? items
       : items.filter((item) =>
-          item.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
   const instrumentItems = filteredItems.filter(
     (item) => item.type === "instruments"
@@ -1054,7 +1075,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                   item.name.includes("Vocalist") ||
                   item.name.includes("Drag Queen") ||
                   item.name.includes("Male Punk Rock") ||
-                  item.name.includes("Female Punk Rock")
+                  item.name.includes("Female Punk Rock") ||
+                  item.name.includes("Singer")
               )}
               drummerItems={musicianItems.filter((item) =>
                 item.name.includes("Drummer")
