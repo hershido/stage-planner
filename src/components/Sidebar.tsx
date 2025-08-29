@@ -47,6 +47,9 @@ import bongosOnStand from "../assets/icons/bongosOnStand.svg";
 import femaleSingerColor from "../assets/icons/femaleSingerColor.svg";
 import maleDrummerSmallKit from "../assets/icons/maleDrummerSmallKit.svg";
 import maleAcousticGuitarPlayer from "../assets/icons/maleAcousticGuitarPlayer.svg";
+import uriah from "../assets/icons/uria.svg";
+import jimboJ from "../assets/icons/jimboJ.svg";
+import itaiWins from "../assets/icons/itaiWins.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -768,6 +771,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 120,
       defaultHeight: 170,
     },
+    {
+      type: "musicians",
+      name: "Uriah Guitar Player",
+      icon: uriah,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
 
     // Musicians - Bassists
     {
@@ -831,6 +841,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       icon: maleDrummerSmallKit,
       defaultWidth: 180,
       defaultHeight: 150,
+    },
+    {
+      type: "musicians",
+      name: "Itai Wins Drummer",
+      icon: itaiWins,
+      defaultWidth: 120,
+      defaultHeight: 170,
     },
 
 
@@ -923,6 +940,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 120,
       defaultHeight: 170,
     },
+    {
+      type: "musicians",
+      name: "Jimbo J Singer",
+      icon: jimboJ,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    }
   ];
 
   const filteredItems =
