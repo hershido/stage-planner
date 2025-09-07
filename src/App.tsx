@@ -255,8 +255,7 @@ function App() {
       }
 
       console.log(
-        `History entry added. Total: ${newHistory.length}, Current index: ${
-          newHistory.length - 1
+        `History entry added. Total: ${newHistory.length}, Current index: ${newHistory.length - 1
         }`
       );
     },
@@ -908,7 +907,7 @@ function App() {
     // Use html2canvas to capture the stage
     html2canvas(stageElement as HTMLElement, {
       backgroundColor: "#ffffff",
-      scale: 3, // Higher scale for better quality
+      scale: 2, // Good quality with reasonable file size
       useCORS: true, // Try to load images with CORS if possible
       allowTaint: true, // Allow cross-origin images
       imageTimeout: 0, // No timeout for images
@@ -948,7 +947,7 @@ function App() {
     })
       .then((canvas) => {
         // Calculate dimensions to fit the stage properly in the PDF
-        const imgData = canvas.toDataURL("image/png", 1.0); // Use max quality
+        const imgData = canvas.toDataURL("image/jpeg", 0.8); // JPEG at 80% quality
 
         // Create PDF starting with portrait orientation for technical info with UTF-8 support
         const pdf = new jsPDF({
@@ -1117,10 +1116,10 @@ function App() {
             renderTextWithFallback(
               "Email",
               pageMargin +
-                nameColWidth +
-                roleColWidth +
-                phoneColWidth +
-                colPadding,
+              nameColWidth +
+              roleColWidth +
+              phoneColWidth +
+              colPadding,
               yPosition
             );
             yPosition += 2;
@@ -1211,10 +1210,10 @@ function App() {
                 renderTextWithFallback(
                   "Email",
                   pageMargin +
-                    nameColWidth +
-                    roleColWidth +
-                    phoneColWidth +
-                    colPadding,
+                  nameColWidth +
+                  roleColWidth +
+                  phoneColWidth +
+                  colPadding,
                   yPosition
                 );
                 yPosition += 2;
@@ -1709,10 +1708,10 @@ function App() {
             renderTextWithFallback(
               "Stand Type",
               pageMargin +
-                numColWidth +
-                nameColWidth +
-                channelColWidth +
-                colPadding,
+              numColWidth +
+              nameColWidth +
+              channelColWidth +
+              colPadding,
               yPosition
             );
             yPosition += 2;
@@ -1805,10 +1804,10 @@ function App() {
                 renderTextWithFallback(
                   "Stand Type",
                   pageMargin +
-                    numColWidth +
-                    nameColWidth +
-                    channelColWidth +
-                    colPadding,
+                  numColWidth +
+                  nameColWidth +
+                  channelColWidth +
+                  colPadding,
                   yPosition
                 );
                 yPosition += 2;
@@ -1847,7 +1846,7 @@ function App() {
               ) {
                 const maxChars = Math.floor(
                   (nameColWidth - colPadding * 2) /
-                    (pdf.getStringUnitWidth("a") * 10)
+                  (pdf.getStringUnitWidth("a") * 10)
                 );
                 const truncatedName = nameText.substring(0, maxChars) + "...";
                 renderTextWithFallback(
@@ -1872,10 +1871,10 @@ function App() {
               renderTextWithFallback(
                 input.standType || "-",
                 pageMargin +
-                  numColWidth +
-                  nameColWidth +
-                  channelColWidth +
-                  colPadding,
+                numColWidth +
+                nameColWidth +
+                channelColWidth +
+                colPadding,
                 yPosition
               );
 
@@ -2071,7 +2070,7 @@ function App() {
               ) {
                 const maxChars = Math.floor(
                   (nameColWidth - colPadding * 2) /
-                    (pdf.getStringUnitWidth("a") * 10)
+                  (pdf.getStringUnitWidth("a") * 10)
                 );
                 const truncatedName = nameText.substring(0, maxChars) + "...";
                 renderTextWithFallback(
@@ -2151,12 +2150,12 @@ function App() {
         // Add the stage image to the PDF with minimal compression
         pdf.addImage({
           imageData: imgData,
-          format: "PNG",
+          format: "JPEG",
           x: xPos,
           y: yPos,
           width: imgWidth,
           height: imgHeight,
-          compression: "NONE", // Better quality with no compression
+          compression: "MEDIUM", // Good balance of quality and size
         });
 
         // Add footers to all pages
@@ -2169,9 +2168,9 @@ function App() {
         const currentDate = new Date().toLocaleDateString().replace(/\//g, "-");
         const fileName = currentConfigName
           ? `${currentConfigName.replace(
-              /[/\\?%*:|"<>]/g,
-              "-"
-            )}-${currentDate}.pdf`
+            /[/\\?%*:|"<>]/g,
+            "-"
+          )}-${currentDate}.pdf`
           : `stage-plan-${currentDate}.pdf`;
 
         // Create a blob from the PDF to use with showSaveFilePicker
