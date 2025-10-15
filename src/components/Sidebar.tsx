@@ -50,6 +50,10 @@ import maleAcousticGuitarPlayer from "../assets/icons/maleAcousticGuitarPlayer.s
 import uriah from "../assets/icons/uria.svg";
 import jimboJ from "../assets/icons/jimboJ.svg";
 import itaiWins from "../assets/icons/itaiWins.svg";
+import femalePianoPlayerStav from "../assets/icons/femalePianoPlayerStav.svg";
+import analogSynthOnStand from "../assets/icons/analogSynthOnStand.svg";
+import nordKeyboardOnStand from "../assets/icons/nordKeyboardOnStand.svg";
+import spdOnStand from "../assets/icons/spdOnStand.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -603,6 +607,29 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 80,
       defaultHeight: 120,
     },
+    {
+      type: "instruments",
+      name: "Analog Synth On Stand",
+      icon: analogSynthOnStand,
+      defaultWidth: 80,
+      defaultHeight: 120,
+    },
+    {
+      type: "instruments",
+      name: "Nord Keyboard on Stand",
+      icon: nordKeyboardOnStand,
+      defaultWidth: 80,
+      defaultHeight: 120,
+    },
+    {
+      type: "instruments",
+      name: "Spd on Stand",
+      icon: spdOnStand,
+      defaultWidth: 80,
+      defaultHeight: 120,
+    },
+
+
 
     // Equipment - Speakers
     {
@@ -810,6 +837,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 180,
       defaultHeight: 160,
     },
+    {
+      type: "musicians",
+      name: "Female Piano Player - Stav",
+      icon: femalePianoPlayerStav,
+      defaultWidth: 180,
+      defaultHeight: 160,
+    },
+
 
     // Musicians - Singers
     {
@@ -1092,7 +1127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                 item.name.includes("Bassist")
               )}
               keyboardItems={musicianItems.filter((item) =>
-                item.name.includes("Keyboard")
+                item.name.includes("Keyboard") || item.name.includes("Piano")
               )}
               vocalistItems={musicianItems.filter(
                 (item) =>
