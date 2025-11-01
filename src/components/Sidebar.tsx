@@ -54,6 +54,7 @@ import femalePianoPlayerStav from "../assets/icons/femalePianoPlayerStav.svg";
 import analogSynthOnStand from "../assets/icons/analogSynthOnStand.svg";
 import nordKeyboardOnStand from "../assets/icons/nordKeyboardOnStand.svg";
 import spdOnStand from "../assets/icons/spdOnStand.svg";
+import roniBongos from "../assets/icons/roniBongos.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -928,6 +929,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       type: "musicians",
       name: "Bongos Player",
       icon: bongosPlayer,
+      defaultWidth: 120,
+      defaultHeight: 150,
+    },
+    {
+      type: "musicians",
+      name: "Roni Bongos",
+      icon: roniBongos,
       defaultWidth: 120,
       defaultHeight: 150,
     },
