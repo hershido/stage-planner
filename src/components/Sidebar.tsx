@@ -55,6 +55,10 @@ import analogSynthOnStand from "../assets/icons/analogSynthOnStand.svg";
 import nordKeyboardOnStand from "../assets/icons/nordKeyboardOnStand.svg";
 import spdOnStand from "../assets/icons/spdOnStand.svg";
 import roniBongos from "../assets/icons/roniBongos.svg";
+import nordStage from "../assets/icons/nordStage.svg";
+import subWoofer from "../assets/icons/subWoofer.svg";
+import taliaSinger from "../assets/icons/taliaSinger.svg";
+import riser from "../assets/icons/riser.svg";
 // These should match the types in Stage.tsx
 const ItemTypes = {
   STAGE_ITEM: "stage-item",
@@ -624,6 +628,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     },
     {
       type: "instruments",
+      name: "Nord Keyboard on Stand 2",
+      icon: nordStage,
+      defaultWidth: 80,
+      defaultHeight: 120,
+    },
+    
+    {
+      type: "instruments",
       name: "Spd on Stand",
       icon: spdOnStand,
       defaultWidth: 80,
@@ -703,6 +715,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       defaultWidth: 120,
       defaultHeight: 80,
     },
+    {
+      type: "equipment",
+      subtype: "monitors",
+      name: "Subwoofer",
+      icon: subWoofer,
+      defaultWidth: 100,
+      defaultHeight: 180,
+    },
 
     // Equipment - Stage Gear
     {
@@ -752,6 +772,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       icon: vocalMicOnStand,
       defaultWidth: 50,
       defaultHeight: 120,
+    },
+    {
+      type: "equipment",
+      subtype: "stageGear",
+      name: "Riser",
+      icon: riser,
+      defaultWidth: 150,
+      defaultHeight: 100,
     },
 
     // Labels
@@ -987,6 +1015,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       type: "musicians",
       name: "Jimbo J Singer",
       icon: jimboJ,
+      defaultWidth: 120,
+      defaultHeight: 170,
+    },
+    {
+      type: "musicians",
+      name: "Talia Singer",
+      icon: taliaSinger,
       defaultWidth: 120,
       defaultHeight: 170,
     }
